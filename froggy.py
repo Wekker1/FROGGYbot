@@ -1,5 +1,9 @@
 import discord
 import logging
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 
@@ -14,4 +18,4 @@ class MyClient(discord.Client):
 
 
 client = MyClient()
-client.run('OTYzNTYzODUyNDcyMTQ3OTk4.YlX6xA.hjhom0dPsoPJybXnmjJGpf0Sdx8')
+client.run(os.getenv("DISCORD_TOKEN"))
