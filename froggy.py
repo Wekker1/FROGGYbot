@@ -14,6 +14,14 @@ intents = discord.Intents.all()
 bot = commands.Bot(command_prefix='?', intents = intents)
 
 
+# role ids from teams 1-7 in order
+roles = [963089891078582382,963089970237677651,963090032405659718,963090085144834069,963090166581444628,963090236836040745,963572386475692042]
+
+class MyClient(discord.Client):
+    async def on_ready(self):
+        print('Logged on as {0}!'.format(self.user))
+
+
 random_role_names = [
 'Test 1',
 'Test 2',
