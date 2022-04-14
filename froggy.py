@@ -2,9 +2,11 @@ import discord
 import logging
 from discord.ext import commands
 from discord.utils import get
+from discord.commands import Option
 import pickle
 import random
 import os
+import io
 from os.path import exists
 import mysql.connector
 from dotenv import load_dotenv
@@ -42,6 +44,8 @@ npcRoles = [
 963573981632405517,
 874051960372883467,
 958645682611302444,
+964306086955999264,
+874051960372883467,
 
 # Users
 951230650680225863, # GM
@@ -77,8 +81,8 @@ async def pickleWrite(memberData, guild):
 async def pickleClear(guild):
     await pickleWrite({}, guild)
 
-async def PCmembers(message):
-    memberList = message.author.guild.members
+async def PCmembers(guild):
+    memberList = guild.members
     newList = []
     for member in memberList:
         illegalFlag = False
@@ -117,6 +121,7 @@ async def assignRandomTeams(memberList, guild):
 
             it = random.randint(0, len(selector)-1)
             ind = selector[it]
+            del selector[it]
 
             assignment = teamList[ind]
 
@@ -130,9 +135,11 @@ async def assignRandomTeams(memberList, guild):
 async def removeTeamRolesFromMembers(memberList, guild):
     teamList = roleListByGuild[guild.id]
 
-    for member in memberList:
-        for team in teamList:
-            await member.remove_roles(get(guild.roles, id=team))
+    for team in teamList:
+        teamRole = get(guild.roles, id=team)
+        for member in memberList:
+            if teamRole in member.roles:
+                await member.remove_roles(teamRole)
 
 async def reassignMemberTeam(member, guild):
     roleList = roleListByGuild[guild.id]
@@ -146,35 +153,72 @@ async def reassignMemberTeam(member, guild):
 
     return False
 
+async def simpleAssignTeams(guild):
+    memberList = await PCmembers(guild)
+    await pickleWrite(await assignRandomTeams(memberList, guild), guild)
+
+async def simpleClearAllTeams(guild):
+    memberList = await PCmembers(guild)
+    await removeTeamRolesFromMembers(memberList, guild)
+    await pickleClear(guild)
+
+async def simpleGetMemberAssignments(guild):
+    assignedList = await pickleLoadMemberData(guild)
+    conString = ""
+    if(len(assignedList) > 0):
+        for idn in assignedList:
+            member = get(guild.members, id=idn)
+            role = get(guild.roles, id=assignedList[idn])
+            conString = conString + member.name + " : " + role.name + "\n"
+        conString = conString[0:-1]
+    else:
+        conString = 'Pickle Empty'
+    return conString
 
 @bot.event
 async def on_ready():
     print('Logged on as {0}!'.format(bot.user))
 
+    # Persistency for slash commands with buttons
+    view = discord.ui.View(timeout=None)
+    # Make sure to set the guild ID here to whatever server you want the buttons in!
+    for i in range(3):
+        commandName = "Off by One Error"
+        if(i == 0):
+            commandName = "Assign Teams"
+        elif(i == 1):
+            commandName = "Clear Teams"
+        elif(i == 2):
+            commandName = "Report Team Assignments"
+        view.add_item(ButtonTest(commandName, i))
+    bot.add_view(view)
+
 @bot.event
 async def on_message(message):
+    if(not(message.content.startswith('!'))):
+        return
+    print("** Command Initiated **")
     guild = message.guild
 
     if message.content.startswith('!toggleSpectator'):
         member = message.author
         print(member.name)
-    if message.content.startswith('!toggleSpectatorTest'):
-        member = message.author
-        print(member.name)
 
     if message.content.startswith('!getEligibleMembers'):
-        memberList = await PCmembers(message)
+        memberList = await PCmembers(guild)
         for member in memberList:
             print(member.name + " : " + str(member.id))
 
     if message.content.startswith('!assignTeams'):
-        memberList = await PCmembers(message)
-        await pickleWrite(await assignRandomTeams(memberList, guild), guild)
+        await simpleAssignTeams(guild)
 
     if message.content.startswith('!clearAllTeams'):
-        memberList = await PCmembers(message)
-        await removeTeamRolesFromMembers(memberList, guild)
-        await pickleClear(guild)
+        await simpleClearAllTeams(guild)
+
+    if message.content.startswith('!printPickle'):
+        print(await simpleGetMemberAssignments(guild))
+
+    print("** Command Finalized **")
 
 @bot.event
 async def on_member_join(member):
@@ -183,6 +227,53 @@ async def on_member_join(member):
     if(not(await reassignMemberTeam(member, guild))):
         print("do stuff")
         ### Do stuff if member do not have a team?
+
+@bot.slash_command(name="backup_pickle", guild_ids=[guildIDs[0]])
+async def say(ctx: discord.ApplicationContext):
+    """This demonstrates how to attach a file with a slash command."""
+    pickleFile = pickleFiles[ctx.guild.id]
+
+    if exists(pickleFile) and os.path.getsize(pickleFile) > 0:
+        file = discord.File(pickleFile)
+        await ctx.respond("Here's your backup pickle file!", file=file)
+
+class ButtonTest(discord.ui.Button):
+    def __init__(self, commandName, commandNum):
+        super().__init__(label=commandName, style=discord.enums.ButtonStyle.primary, custom_id=str(commandNum))
+
+    async def callback(self, interaction: discord.Interaction):
+        guild = interaction.guild
+
+        commandInd = int(self.custom_id)
+
+        if(commandInd == 0):
+            await simpleAssignTeams(guild)
+            await interaction.response.send_message(content = "Teams Assigned!", delete_after=10)
+        elif(commandInd == 1):
+            await simpleClearAllTeams(guild)
+            await interaction.response.send_message(content = "Teams Cleared!", delete_after=10)
+        elif(commandInd == 2):
+            attachment = await simpleGetMemberAssignments(guild)
+            fileOut = discord.File(io.StringIO(attachment), filename="MemberAssignments.txt", description="A list of member names and corresponding assinged team.")
+            await interaction.response.send_message(content = "Here's a list of team assignments, this message will delete in 1 minute:", delete_after=60, file=fileOut)
+        else:
+            print("Invalid Button ID Detected.")
+        return True
+
+
+@bot.slash_command(name="command_message", guild_ids=[guildIDs[0]])
+async def say(ctx: discord.ApplicationContext):
+    view = discord.ui.View(timeout=None)
+    for i in range(3):
+        commandName = "Off by One Error"
+        if(i == 0):
+            commandName = "Assign Teams"
+        elif(i == 1):
+            commandName = "Clear Teams"
+        elif(i == 2):
+            commandName = "Report Team Assignments"
+        view.add_item(ButtonTest(commandName, i))
+    await ctx.respond("Here are some commands:", view=view)
 
 
 bot.run(os.getenv("DISCORD_TOKEN"))
