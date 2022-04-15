@@ -46,6 +46,10 @@ npcRoles = [
 958645682611302444,
 964306086955999264,
 874051960372883467,
+951970331386585121,
+953386946749681757,
+964311549466517534,
+
 
 # Users
 951230650680225863, # GM
@@ -141,13 +145,14 @@ async def removeTeamRolesFromMembers(memberList, guild):
             if teamRole in member.roles:
                 await member.remove_roles(teamRole)
 
+
 async def reassignMemberTeam(member, guild):
     roleList = roleListByGuild[guild.id]
 
-    memberAssignments = pickleLoadMemberData(guild)
+    memberAssignments = await pickleLoadMemberData(guild)
 
     if member.id in memberAssignments:
-        role = get(member.guild.roles, id=assignment)
+        role = get(member.guild.roles, id=memberAssignments[member.id])
         await member.add_roles(role)
         return True
 
@@ -226,9 +231,10 @@ async def on_member_join(member):
     guild = member.guild
     if(not(await reassignMemberTeam(member, guild))):
         print("do stuff")
-        ### Do stuff if member do not have a team?
+        ### Do stuff if member does not have a team?
 
-@bot.slash_command(name="backup_pickle", guild_ids=[guildIDs[0]])
+
+@bot.slash_command(name="backup_pickle")
 async def say(ctx: discord.ApplicationContext):
     """This demonstrates how to attach a file with a slash command."""
     pickleFile = pickleFiles[ctx.guild.id]
@@ -261,8 +267,9 @@ class ButtonTest(discord.ui.Button):
         return True
 
 
-@bot.slash_command(name="command_message", guild_ids=[guildIDs[0]])
+@bot.slash_command(name="command_message")
 async def say(ctx: discord.ApplicationContext):
+    """Create a message with various commands"""
     view = discord.ui.View(timeout=None)
     for i in range(3):
         commandName = "Off by One Error"
@@ -274,6 +281,22 @@ async def say(ctx: discord.ApplicationContext):
             commandName = "Report Team Assignments"
         view.add_item(ButtonTest(commandName, i))
     await ctx.respond("Here are some commands:", view=view)
+
+@bot.slash_command(name="clear_members_from_role")
+async def clearRole(ctx: discord.ApplicationContext, role: Option(discord.Role, "The Role to Clear")):
+    """Clear all members from a role"""
+    data = await pickleLoadMemberData(ctx.guild)
+    memberList = await PCmembers(ctx.guild)
+
+    for member in memberList:
+        if role in member.roles:
+            await member.remove_roles(role)
+            if member.id in data:
+                if data[member.id] == role.id:
+                    del data[member.id]
+    
+    await pickleWrite(data, ctx.guild)
+    await ctx.respond(role.mention + " has been cleared.", delete_after=10)
 
 
 bot.run(os.getenv("DISCORD_TOKEN"))
