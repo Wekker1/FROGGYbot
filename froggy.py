@@ -3,6 +3,7 @@ import logging
 from discord.ext import commands
 from discord.utils import get
 from discord.commands import Option
+from discord.commands import permissions
 import pickle
 import random
 import os
@@ -54,6 +55,19 @@ npcRoles = [
 # Users
 951230650680225863, # GM
 951999879637516418, # Spectator
+
+# Test Users
+964333967807500310,
+]
+
+GMRoles = {
+847560709730730064 : 951230650680225863, # Community
+856341009218666506 : 964333967807500310, # Test
+}
+
+GMRolesList = [
+951230650680225863, # Community
+964333967807500310, # Test
 ]
 
 Testroles = [
@@ -202,6 +216,9 @@ async def on_ready():
 async def on_message(message):
     if(not(message.content.startswith('!'))):
         return
+    gmRole = get(message.guild.roles, id=GMRoles[message.guild.id])
+    if(not(gmRole in message.author.roles)):
+        return
     print("** Command Initiated **")
     guild = message.guild
 
@@ -237,7 +254,14 @@ async def on_member_join(member):
 @bot.slash_command(name="backup_pickle")
 async def say(ctx: discord.ApplicationContext):
     """This demonstrates how to attach a file with a slash command."""
-    pickleFile = pickleFiles[ctx.guild.id]
+
+    guild = ctx.guild
+    gmRole = get(guild.roles, id=GMRoles[guild.id])
+    if(not(gmRole in ctx.interaction.user.roles)):
+        await ctx.respond("You do not have permission to use this command.", delete_after=10)
+        return
+
+    pickleFile = pickleFiles[guild.id]
 
     if exists(pickleFile) and os.path.getsize(pickleFile) > 0:
         file = discord.File(pickleFile)
@@ -249,7 +273,10 @@ class ButtonTest(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         guild = interaction.guild
-
+        gmRole = get(guild.roles, id=GMRoles[guild.id])
+        if(not(gmRole in interaction.user.roles)):
+            await interaction.response.send_message("You do not have permission to use this command.", delete_after=10, ephemeral=True)
+            return
         commandInd = int(self.custom_id)
 
         if(commandInd == 0):
@@ -270,6 +297,13 @@ class ButtonTest(discord.ui.Button):
 @bot.slash_command(name="command_message")
 async def say(ctx: discord.ApplicationContext):
     """Create a message with various commands"""
+
+    guild = ctx.guild
+    gmRole = get(guild.roles, id=GMRoles[guild.id])
+    if(not(gmRole in ctx.interaction.user.roles)):
+        await ctx.respond("You do not have permission to use this command.", delete_after=10, ephemeral=True)
+        return
+
     view = discord.ui.View(timeout=None)
     for i in range(3):
         commandName = "Off by One Error"
@@ -285,8 +319,14 @@ async def say(ctx: discord.ApplicationContext):
 @bot.slash_command(name="clear_members_from_role")
 async def clearRole(ctx: discord.ApplicationContext, role: Option(discord.Role, "The Role to Clear")):
     """Clear all members from a role"""
-    data = await pickleLoadMemberData(ctx.guild)
-    memberList = await PCmembers(ctx.guild)
+    guild = ctx.guild
+    gmRole = get(guild.roles, id=GMRoles[guild.id])
+    if(not(gmRole in ctx.interaction.user.roles)):
+        await ctx.respond("You do not have permission to use this command.", delete_after=10)
+        return
+
+    data = await pickleLoadMemberData(guild)
+    memberList = await PCmembers(guild)
 
     for member in memberList:
         if role in member.roles:
@@ -295,7 +335,7 @@ async def clearRole(ctx: discord.ApplicationContext, role: Option(discord.Role, 
                 if data[member.id] == role.id:
                     del data[member.id]
     
-    await pickleWrite(data, ctx.guild)
+    await pickleWrite(data, guild)
     await ctx.respond(role.mention + " has been cleared.", delete_after=10)
 
 
