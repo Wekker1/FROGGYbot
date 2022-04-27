@@ -1,9 +1,10 @@
 elev8 : Saar
 DragoThaxton : Sardakk
 Matthew D : Ghosts
+alphafoxtrot : Sardakk
 Garindan : L1Z1X
 Conorzz : Plants
-Lord Rattington : Bats
+Caluin : L1Z1X
 It'sNotEasyBeingBiotic 🌸 🦇 : Bats
 uvula9000 : Cabal
 nenowick : Saar
@@ -14,6 +15,8 @@ mduval12 : Sardakk
 Growooken : Bats
 Goondock : Plants
 phil/sage : Cabal
+Robert : Plants
+The Moon (official) : Plants
 Jazzxhands : Saar
 ThundrVndr : Ghosts
 teddysjamforyou : Sardakk
@@ -21,6 +24,7 @@ Evalha : L1Z1X
 Sun Tzu | BAGEL : Bats
 somno : Ghosts
 ExpendableCrewman37 : Plants
+SqueamishEmu : Ghosts
 MonteCrisco : Plants
 Driftwood : Saar
 Darrell : Sardakk
@@ -31,36 +35,44 @@ STRANGER_DANGER_BERTA_BAGEL : L1Z1X
 Brassbird : Bats
 tgwelch1 : Saar
 The Humble Checkmate : Cabal
+Freddie 🤙 : L1Z1X
 Galen : Sardakk
 Tankor2021 : Plants
 Myles4you : Saar
 denis (he/him) : Ghosts
-Dark Mechanicus : Plants
+SCPT Matt : Bats
+Drew D. : Plants
 JolNarBinks : Bats
+ctinfty : Sardakk
 Noldor : L1Z1X
 Japser : Cabal
-Deranged Tyrion : Saar
 dj38s : Sardakk
 Mythic : Ghosts
 Cages : Plants
 HolyTispoon : Bats
 olneyce : L1Z1X
+Walkerfan437 : Ghosts
 Bgfloy01 : Bats
 TerTerro : Plants
 artofjim : Cabal
 BigAlCupAChino (Alan Spilhaus) : Saar
 TotallyCalculatingPoet : Sardakk
+Erdnuss : Ghosts
 rogersthejimmy : L1Z1X
 FallenWaffle | BAGEL : Ghosts
+MikeSchnier : Bats
 SebFoley : Saar
 The Meta : Bats
 Zorp the Surveyor : Cabal
 fargoness : L1Z1X
 Fragzer : Bats
+hayhalhan : L1Z1X
 Sass Chan : Sardakk
 buckfastbill : Cabal
 TricksySpaceGobbo : Ghosts
 mythic_machine : Saar
+Cuthbert : Saar
+AJ_95 (Space_Place) : Saar
 manbearpiglet : Bats
 Bobc222 : Saar
 TheDeftPiper : L1Z1X
@@ -68,26 +80,35 @@ Son of Leto(UTC-6) : Cabal
 Hadouken! : Sardakk
 Sherlock : Plants
 Manatee321 : Saar
+truthtruth : L1Z1X
 old-man-gi : Bats
+JGill : Saar
 Jaynor (-5 UTC) : Cabal
 Queso : Plants
 iamkaity : Ghosts
 mantis : Sardakk
 Scarlotti : Sardakk
+Volverbot : Cabal
 NickWise : Saar
 LongDistanceKhal : Cabal
+oldest old timer : Cabal
 jadiimjedi : Ghosts
 PRIPARA PLAYER : Bats
 Quesaughnt : Cabal
+alasam : L1Z1X
+firefoxgum : L1Z1X
+kRuthless : Ghosts
 goldie : Sardakk
 hint : Ghosts
 Aptronymic : L1Z1X
+Whatasandwich21 : Saar
 Ruffians : Sardakk
-Nephew of Dorn : Ghosts
+ahillinaustin : Cabal
 Rando Calrissian : Cabal
 Bannerspear : Bats
 UbAh : Plants
 Oneky : Saar
+Hattentratt : Cabal
 frrrrrrrrrrt : Bats
 Kolko : Saar
 Frank_G : Plants
@@ -96,25 +117,3 @@ LukeM : L1Z1X
 Fingolfin : Ghosts
 porkyshinwell : L1Z1X
 Frodo : Sardakk
-x3n d0g : Bats
-ahillinaustin : Cabal
-alphafoxtrot : Sardakk
-Walkerfan437 : Ghosts
-AJ_95 (Space_Place) : Saar
-MikeSchnier : Bats
-Caluin : L1Z1X
-Volverbot : Cabal
-SqueamishEmu : Ghosts
-JGill : Saar
-The Moon (official) : Plants
-Freddie 🤙 : L1Z1X
-Whatasandwich21 : Saar
-Cuthbert : Saar
-kRuthless : Ghosts
-Hattentratt : Cabal
-oldest old timer : Cabal
-alasam : L1Z1X
-Robert : Plants
-ctinfty : Sardakk
-Drew D. : Plants
-EasyPoll : L1Z1X
