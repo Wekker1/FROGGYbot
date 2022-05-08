@@ -195,31 +195,77 @@ async def generateSelectorList(length):
         selector.append(i)
     return selector
 
+async def getTeamPop(guild):
+    teamList = roleListByGuild[guild.id]
+    assignMemory = await pickleLoadMemberData(guild)
+    teamPop = {}
+
+    # Initialize population list
+    for team in teamList:
+        teamPop[team] = 0
+
+    for midn in assignMemory:
+        member = get(guild.members, id=midn)
+        if(member):
+            for role in member.roles:
+                if role.id in teamList:
+                    teamPop[role.id] = teamPop[role.id] + 1
+
+    return teamPop
+
+
 async def assignRandomTeams(memberList, guild):
     teamList = roleListByGuild[guild.id]
     selector = await generateSelectorList(len(teamList))
     assignMemory = await pickleLoadMemberData(guild)
+    teamPop = await getTeamPop(guild)
 
     if len(assignMemory) < 1:
-        return None
+        assignMemory[newMemberFlag] = False
 
     for member in memberList:
         if member.id in assignMemory:
             assignment = assignMemory[member.id]
             role = get(member.guild.roles, id=assignment)
+            print(member.name + " readded to team " + role.name)
             await member.add_roles(role)
         else:
-            if(len(selector) <= 1):
-                selector = await generateSelectorList(len(teamList))
+            contCheck = True
+            assignment = -1
+            while(contCheck):
+                if(len(selector) <= 1):
+                    selector = generateSelectorList(len(teamList))
 
-            it = random.randint(0, len(selector)-1)
-            ind = selector[it]
-            del selector[it]
+                it = random.randint(0, len(selector)-1)
+                ind = selector[it]
+                assignment = teamList[ind]
+                del selector[it]
 
-            assignment = teamList[ind]
+                tMax = 0
+                cPop = 0
+                allsame = 1
+                for team in teamList:
+                    if teamPop[team] > tMax:
+                        tMax = teamPop[team]
+                    elif teamPop[team] == tMax:
+                        allsame = allsame+1
+                    if team == assignment:
+                        cPop = teamPop[team]
 
+                if cPop == tMax:
+                    if(allsame == len(teamList)):
+                        contCheck = False
+                    elif(len(selector) <= 1):
+                        contCheck = False
+                    else: 
+                        contCheck = True
+                else:
+                    contCheck = False
+
+            teamPop[assignment] = teamPop[assignment] + 1
             assignMemory[member.id] = assignment
             role = get(member.guild.roles, id=assignment)
+            print(member.name + " added to team " + role.name)
             await member.add_roles(role)
 
     return assignMemory
@@ -480,6 +526,32 @@ async def clearRole(ctx: discord.ApplicationContext, role: Option(discord.Role, 
     
     await pickleWrite(data, guild)
     await ctx.respond(role.mention + " has been cleared.", delete_after=10)
+
+@bot.slash_command(name="report_team_stats")
+async def reportStats(ctx: discord.ApplicationContext):
+    """Later consider adding action tracking and other data"""
+    guild = ctx.guild
+    teamTotals = await getTeamPop(guild)
+
+    outString = ""
+    for team in teamTotals:
+        teamRole = get(guild.roles, id=team)
+        teamRolesList = {}
+        for role in guild.roles:
+            if role.name.startswith(teamRole.name) and role.name != teamRole.name:
+                teamRolesList[role.name] = len(role.members)
+        
+        outString = outString + teamRole.name + " has " + str(teamTotals[team]) + " total members, "
+
+        for role in teamRolesList:
+            if(teamRolesList[role] > 1):
+                outString = outString + "and " + str(teamRolesList[role]) + " " + role + "s, "
+            else:
+                outString = outString + "and " + str(teamRolesList[role]) + " " + role + ", "
+
+        outString = outString[0:-2] + ".\n"
+    outString = outString[0:-1]
+    await ctx.respond(outString)
 
 
 bot.run(os.getenv("DISCORD_TOKEN"))
