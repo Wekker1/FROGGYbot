@@ -8,9 +8,14 @@ import pickle
 import random
 import os
 import io
+import pandas
 from os.path import exists
 import mysql.connector
 from dotenv import load_dotenv
+import mapRender
+from mapRender import *
+import frontend
+from frontend import *
 
 load_dotenv()
 
@@ -32,6 +37,104 @@ pickleFiles = {
 backUps = {
 856341009218666506 : 'testAss.pickle',
 847560709730730064 : 'restoreList.txt',
+}
+
+dataFile = "staticInfo.xlsx"
+dataTabs = ["tiles", "planets", "factions", "attachments", "technologies"]
+dataTitles = {
+    'tiles': ['Tile Number', 'Planets (comma separated)', 'anomalies', 'wormholes (comma separated)', 'frontier (no planets)', 
+        'hyperlane', 'faction', 'Special'],
+           
+    'planets': ['Planet Name', 'Tile Number', 'Resources', 'Influence', 'Trait', 'Tech Specialties', 'Legendary', 'Start Readied', 
+        'Faction', 'Pseudonyms'],
+           
+    'factions': ['lookup name', 'full name', 'starting tech', 'starting units', 'home system tile number', 
+        'faction ability names (comma separated)', 'faction ability text (comma separated)', 'flagship name', 'mech name',
+        'mech ability text', 'faction tech 1 name', 'faction tech 1 unit replaced', 'replaced unit stats (cost,combat,move,capacity)',
+        'faction tech 2 name', 'faction tech 2 unit replaced', 'replaced unit stats (cost,combat,move,capacity).1', 'agent name',
+        'agent ability', 'commander name', 'commander condition', 'commander ability', 'hero locked name', 'hero unlocked name',
+        'hero ability', 'promissory note name', 'promissory note text'],
+           
+    'attachments': ['lookup name (idk yet)', 'attachment name', 'resources', 'influence', 'trait', 'techspec', 
+        'legendary (true or false)', 'abilities ie DMZ (true or false)', 'alt lookup name (for attachments with alternative effects)', 'text'],
+           
+    'technologies': ['name', 'color (blank if unit)', 'requirements', 'unit', 'text','pseudonyms (comma separated)'],
+}
+defaults = {
+    'tiles': {
+        'Tile Number' : -1, 
+        'Planets (comma separated)' : "", 
+        'anomalies' : "", 
+        'wormholes (comma separated)' : "", 
+        'frontier (no planets)' : False, 
+        'hyperlane' : False, 
+        'faction' : "", 
+        'Special' : False,
+    },
+
+    'planets' : {
+        'Planet Name' : "", 
+        'Tile Number' : -1, 
+        'Resources' : 0, 
+        'Influence' : 0, 
+        'Trait' : "", 
+        'Tech Specialties' : "", 
+        'Legendary' : False, 
+        'Start Readied' : False, 
+        'Faction' : "", 
+        'Pseudonyms' : "",
+    },
+
+    'factions' : {
+        'lookup name' : "", 
+        'full name' : "", 
+        'starting tech' : "", 
+        'starting units' : "", 
+        'home system tile number' : -1, 
+        'faction ability names (comma separated)' : "", 
+        'faction ability text (comma separated)' : "", 
+        'flagship name' : "", 
+        'mech name' : "",
+        'mech ability text' : "", 
+        'faction tech 1 name' : "", 
+        'faction tech 1 unit replaced' : "", 
+        'replaced unit stats (cost,combat,move,capacity)' : "",
+        'faction tech 2 name' : "", 
+        'faction tech 2 unit replaced' : "", 
+        'replaced unit stats (cost,combat,move,capacity).1' : "", 
+        'agent name' : "",
+        'agent ability' : "", 
+        'commander name' : "", 
+        'commander condition' : "", 
+        'commander ability' : "", 
+        'hero locked name' : "", 
+        'hero unlocked name' : "",
+        'hero ability' : "", 
+        'promissory note name' : "", 
+        'promissory note text' : "",
+    },
+
+    'attachments' : {
+        'lookup name (idk yet)' : "", 
+        'attachment name' : "", 
+        'resources' : 0, 
+        'influence' : 0, 
+        'trait' : "", 
+        'techspec' : "", 
+        'legendary (true or false)' : False, 
+        'abilities ie DMZ (true or false)' : False, 
+        'alt lookup name (for attachments with alternative effects)' : "", 
+        'text' : "",
+    },
+
+    'technologies' : {
+        'name' : "", 
+        'color (blank if unit)' : "", 
+        'requirements' : "", 
+        'unit' : "", 
+        'text' : "",
+        'pseudonyms (comma separated)' : "",
+    },
 }
 
 # Team role ids from teams 1-7 in order
@@ -234,7 +337,7 @@ async def assignRandomTeams(memberList, guild):
             assignment = -1
             while(contCheck):
                 if(len(selector) <= 1):
-                    selector = generateSelectorList(len(teamList))
+                    selector = await generateSelectorList(len(teamList))
 
                 it = random.randint(0, len(selector)-1)
                 ind = selector[it]
@@ -351,7 +454,6 @@ async def on_ready():
 
     # Persistency for slash commands with buttons
     view = discord.ui.View(timeout=None)
-    # Make sure to set the guild ID here to whatever server you want the buttons in!
     for i in range(4):
         commandName = "Off by One Error"
         if(i == 0):
@@ -364,6 +466,10 @@ async def on_ready():
             commandName = "Toggle Autoassigning New Members"
         view.add_item(ButtonTest(commandName, i))
     bot.add_view(view)
+
+    view = factionDecisionRequest(get(bot.guilds, id=guildIDs[1]), factions)
+    bot.add_view(view)
+
 
 @bot.event
 async def on_message(message):
@@ -507,15 +613,19 @@ async def clearRole(ctx: discord.ApplicationContext, role: Option(discord.Role, 
     guild = ctx.guild
     gmRole = get(guild.roles, id=GMRoles[guild.id])
     if(not(gmRole in ctx.interaction.user.roles)):
-        await ctx.respond("You do not have permission to use this command.", delete_after=10)
+        await ctx.respond("You do not have permission to use this command.", ephemeral=True, delete_after=10)
         return
 
+    print(role)
+    await ctx.respond(role.mention + " is being cleared.")
     data = await pickleLoadMemberData(guild)
 
     if len(data) < 1:
         return None
 
+
     memberList = await PCmembers(guild)
+    print("test")
 
     for member in memberList:
         if role in member.roles:
@@ -524,8 +634,11 @@ async def clearRole(ctx: discord.ApplicationContext, role: Option(discord.Role, 
                 if data[member.id] == role.id:
                     del data[member.id]
     
+    print("test")
     await pickleWrite(data, guild)
+    print(role.mention)
     await ctx.respond(role.mention + " has been cleared.", delete_after=10)
+    print("test")
 
 @bot.slash_command(name="report_team_stats")
 async def reportStats(ctx: discord.ApplicationContext):
@@ -553,17 +666,77 @@ async def reportStats(ctx: discord.ApplicationContext):
     outString = outString[0:-1]
     await ctx.respond(outString)
 
-
-bot.run(os.getenv("DISCORD_TOKEN"))
-
 factions = [
     "Arborec", "Argent", "Barony", "Cabal",
-    "Empyrean", "Ghosts", "Hacan", "Jol-Nar",
+    "Empyrean", "Ghosts", "Hacan", "Jol-Nar", 
+    "Keleres [Argent]", "Keleres [Mentak]", "Keleres [Xxcha]",
     "L1Z1X", "Mahact", "Mentak", "Muaat",
-    "Naalu", "Naaz Rokha", "Nekro", "Nomad",
+    "Naalu", "Naaz-Rokha", "Nekro", "Nomad",
     "Saar", "Sardakk", "Sol", "Titans",
     "Winnu", "Xxcha", "Yin", "Yssaril",
 ]
+
+@bot.slash_command(name="map")
+async def showMap(ctx: discord.ApplicationContext, mapstring: Option(str, "The Map String"), name: Option(str, "The Map's Name", required=False)):
+    guild = ctx.guild
+
+    await ctx.respond(content = "Generating Map", delete_after=30)
+
+    mapImageFile = loadMap(mapstring, name)
+    print(mapImageFile)
+    if name:
+        fn = name + ".png"
+    else:
+        fn = "Map.png"
+    mapFile = discord.File(mapImageFile, filename=fn, description="A Twilight Imperium Map")
+
+    await ctx.respond(content = "Here is your map:", file=mapFile)
+
+@bot.slash_command(name="dropdowntest")
+async def dropdownTest(ctx: discord.ApplicationContext):
+    vw = factionDecisionRequest(ctx.guild, factions)
+    await ctx.respond(content = "Here is your test:", view=vw)
+
+@bot.slash_command(name="clearvotes")
+async def clearVoteFile(ctx: discord.ApplicationContext):
+    await clearVotes()
+    await ctx.respond(content = "Vote savefile cleared.", delete_after=10)
+
+async def genVoteResults(team="all"):
+    votes = await getVotes()
+
+    search = None
+    if team in votes.keys():
+        search=team
+
+    message = ""
+    for key in votes.keys():
+        if not(search) or search == key:
+            message = message + key + ":\n"
+            for votekey in votes[key].keys():
+                message = message + "\t" + votekey + " has " + str(votes[key][votekey]) + " votes.\n"
+            message = message + "\n"
+
+    message = message[:-1]
+    return message
+
+@bot.slash_command(name="getvotes")
+async def getVotesDD(ctx: discord.ApplicationContext):
+    message = await genVoteResults()
+
+    await ctx.respond(content = message)
+
+@bot.message_command(name="Close Faction Poll")
+async def closeFacPoll(ctx, message: discord.Message):
+    print("Test")
+    if message.author.id == bot.user.id and len(message.components) == 2 and message.components[1].children[0].label == "Vote":
+        view = discord.ui.View()
+        team = message.channel.name
+        print(team)
+        out = await genVoteResults(team)
+        await message.edit(content="The results of this vote:\n" + out, view=None)
+    
+    await ctx.respond(content="Command finished.", delete_after=5)
 
 defaultUnitPool = {
     "Mech" : 0,
@@ -582,8 +755,9 @@ defaultUnitPool = {
 }
 
 class System:
-    def __init__(self, tileNum, planets=[], anomalies=[], wormholes=[], frontier=False, hyperlane=False, homeSystem=False, adjacentTiles=[], containedThings={}):
+    def __init__(self, tileNum, pos, planets={}, anomalies=[], wormholes=[], frontier=False, hyperlane=False, homeSystem=False, adjacentTiles=[], containedThings={}):
         self.tileNum        = tileNum
+        self.pos            = pos
         self.planets        = planets
         self.anomalies      = anomalies
         self.wormholes      = wormholes
@@ -600,7 +774,7 @@ class System:
             return True
 
 class Planet:
-    def __init__(self, name, resources=0, influence=0, Ptype=["None",], techspec="", attachments=[], legendary=False, readied=False, containedThings={}):
+    def __init__(self, name, resources=0, influence=0, Ptype=["None",], techspec="", legendary=False, readied=False, attachments=[], containedThings={}):
         self.name           = name
         self.resources      = resources
         self.influence      = influence
@@ -648,14 +822,75 @@ class Planet:
         attachments.append(attachment["name"])
         return True
 
-galaxy = {}
+def Merge(listOfDict):
+    outDict = {}
+    for dic in listOfDict:
+        outDict = outDict | dic
 
-async def generateMap(mapString):
-    if len(mapString) > 1:
-        splmap = mapString.split(',')
-        if len(splmap) < 2:
-            splmap = mapString.split(',')
-        if len(splmap) < 2:
-            return {18 : System(18, Planet("Mecatol Rex", 1, 6))}
-    else:
-        return None
+    return outDict
+
+def systemInfoLookup(tileNumber):
+    dFrame = DataSheet.parse(dataTabs[0])
+    tileList = dFrame[dataTitles[dataTabs[0]][0]]
+    index = -1
+    sysInfoDict = {}
+    for i in range(len(tileList)):
+        if tileList[i] == tileNumber:
+            index = i
+    if index >= 0:
+        for title in dFrame:
+            item = dFrame[title][index]
+            if item == item:
+                sysInfoDict[title] = item
+            else:
+                sysInfoDict[title] = defaults[dataTabs[0]][title]
+
+    return sysInfoDict
+
+def planetInfoLookup(planetName):
+    dFrame = DataSheet.parse(dataTabs[1])
+    planetList = dFrame[dataTitles[dataTabs[1]][0]]
+    index = -1
+    pntInfoDict = {}
+    for i in range(len(planetList)):
+        if planetList[i] == planetName:
+            index = i
+    if index >= 0:
+        for title in dFrame:
+            item = dFrame[title][index]
+            if item == item:
+                pntInfoDict[title] = item
+            else:
+                pntInfoDict[title] = defaults[dataTabs[1]][title]
+
+    return pntInfoDict
+
+def planetsGen(planetString):
+    PlanetList = {}
+    if(planetString == planetString):
+        planets = planetString.split(",")
+        for pnt in planets:
+            pInfo = planetInfoLookup(pnt)
+            sheet = dataTitles[dataTabs[1]]
+            pObj = Planet(pnt, pInfo[sheet[2]], pInfo[sheet[3]], pInfo[sheet[4]], pInfo[sheet[5]], pInfo[sheet[6]], pInfo[sheet[7]])
+            PlanetList[pnt] = pObj
+
+    return PlanetList
+
+async def ringListToSystemMap(mapString):
+    ringList = mapStringToTilePosSet(mapString)
+    tileList = Merge(ringList)
+
+    systemMap = {}
+
+    for pos in tileList:
+        sysInfo = systemInfoLookup(tileList[pos])
+        if len(sysInfo)>0:
+            sysLookup = dataTitles[dataTabs[0]]
+            planets = planetsGen(sysInfo[sysLookup[1]])
+            systemMap[pos] = System(tileList[pos], pos, planets, anomalies, wormholes, frontier, hyperlane, homeSystem)
+        else:
+            systemMap[pos] = System(tileList[pos], pos)
+
+DataSheet = pandas.ExcelFile(dataFile)
+bot.run(os.getenv("DISCORD_TOKEN"))
