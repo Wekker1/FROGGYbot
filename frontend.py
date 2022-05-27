@@ -60,6 +60,7 @@ async def clearVotes(clearList=[]):
 	with open(pickleFile, 'wb') as f:
 		pickle.dump(clearList, f, pickle.HIGHEST_PROTOCOL)
 
+
 async def updateVote(memVote):
 	votes = []
 	pickleFile = votesPickle
@@ -74,8 +75,15 @@ async def updateVote(memVote):
 	else:
 		votes.append(memVote)
 
+	count = 0
+	for vote in votes:
+		if vote.team == memVote.team:
+			count = count+1
+
 	with open(pickleFile, 'wb') as f:
 		pickle.dump(votes, f, pickle.HIGHEST_PROTOCOL)
+
+	return count
 
 async def getVotes():
 	votes = []
@@ -97,16 +105,29 @@ async def getVotes():
 
 	return voteTotals
 
-memVarDefaut = "test"
+async def clearTeamVotes(team):
+	pickleFile = votesPickle
+	votes = []
+
+	if exists(pickleFile) and os.path.getsize(pickleFile) > 0:
+		with open(pickleFile, 'rb') as f:
+			votes = pickle.load(f)
+
+	for mv in votes:
+		if mv.team == team:
+			votes.remove(mv)
+
+	await clearVotes(votes)
+
+memVarDefault = {-1 : "MEMVARDEFAULT"}
+memVar = memVarDefault
 
 class factionDropdown(discord.ui.Select):
-	memVar = memVarDefaut
-
 	def __init__(self, placeholder, options):
-		super().__init__(placeholder=placeholder, min_values=1, max_values=1, options=options, custom_id=placeholder)
+		super().__init__(placeholder=placeholder, min_values=1, max_values=1, options=options, custom_id="pollID")
 
 	async def callback(self, interaction: discord.Interaction):
-		self.memVar = self.values[0]
+		self.memVar[interaction.user.id] = self.values[0]
 		await interaction.response.defer()
 
 class confirmButton(discord.ui.Button):
@@ -117,16 +138,17 @@ class confirmButton(discord.ui.Button):
 	async def callback(self, interaction: discord.Interaction):
 		print(self.dropdown.memVar)
 		print(str(interaction.user))
-		if self.dropdown.memVar == memVarDefaut:
+		uid = interaction.user.id
+		if self.dropdown.memVar == memVarDefault or not(uid in self.dropdown.memVar.keys()):
 			await interaction.response.send_message(content=f"You must select an option.", delete_after=10, ephemeral=True)
 		else:
-			team = "None"
-			for role in interaction.user.roles:
-				if role.name.startswith("Team"):
-					team = role.name
-			newVote = memVote(interaction.user.id, interaction.channel.name, self.dropdown.memVar)
-			await updateVote(newVote)
-			await interaction.response.send_message(content=f"You have voted/updated your vote to: {self.dropdown.memVar}", delete_after=10, ephemeral=True)
+			if memVar[uid] != dropdown.values[0]:
+				await interaction.response.send_message(content=f"Error processing vote, please select your option in the dropdown again.", delete_after=30, ephemeral=True)
+			else:
+				newVote = memVote(interaction.user.id, interaction.channel.name, self.dropdown.memVar)
+				totalVoteCount = await updateVote(newVote)
+				await interaction.message.edit(content=interaction.message.content.split("\n")[0] + f"\n\n{totalVoteCount} users have voted.")
+				await interaction.response.send_message(content=f"You have voted/updated your vote to: {self.dropdown.memVar}", delete_after=10, ephemeral=True)
 
 def factionDecisionRequest(guild, factionOptions):
 	dropOptions = []
@@ -150,6 +172,17 @@ def factionDecisionRequest(guild, factionOptions):
 
 	vw = discord.ui.View(timeout=None)
 	sel = factionDropdown(placeholder="Faction Name", options = dropOptions)
+	but = confirmButton("Vote", sel)
+	vw.add_item(sel)
+	vw.add_item(but)
+	return vw
+
+def decisionRequest(optionList):
+	dropOptions = []
+	for option in optionList:
+		dropOptions.append(discord.SelectOption(label=option))
+	vw = discord.ui.View(timeout=None)
+	sel = factionDropdown(placeholder="Choose one option:", options = dropOptions)
 	but = confirmButton("Vote", sel)
 	vw.add_item(sel)
 	vw.add_item(but)

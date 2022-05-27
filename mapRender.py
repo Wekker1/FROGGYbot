@@ -84,7 +84,7 @@ class RGBRotate(object):
 		outMat[:,:,0:3] = self.applyMatrix(inMat[:,:,0:3])
 		return outMat
 
-def superimpose(underImage, overImage, centerpos):
+async def superimpose(underImage, overImage, centerpos, ignore_weight=False):
 	overImageTL = (int(centerpos[0]-overImage.shape[0]/2),int(centerpos[1]-overImage.shape[1]/2))
 	underImageTL = (0,0)
 	overImageBR = (overImageTL[0] + overImage.shape[0],overImageTL[1] + overImage.shape[1])
@@ -102,6 +102,8 @@ def superimpose(underImage, overImage, centerpos):
 			localp = (int(py+centerpos[0]-int(overImage.shape[0]/2)-finalTL[0]), int(px+centerpos[1]-int(overImage.shape[1]/2)-finalTL[1]))
 			if overImage[py,px,3] > 10 and overImage[py,px,3] < 200:
 				weight = overImage[py,px,3] / 255.0
+				if ignore_weight:
+					weight = 1
 				for i in range(3):
 					finImage[localp[0],localp[1],i] = int(overImage[py,px,i]*weight) + int(finImage[localp[0],localp[1],i]*(1-weight))
 			elif overImage[py,px,3] > 10:
@@ -203,7 +205,7 @@ def mapStringToTilePosSet(mapString):
 
 	return ringLists
 
-def compositeMap(ringPosList):
+async def compositeMap(ringPosList):
 	tileAddress=assetAddress+subAddresses["tiles"]
 
 	buffer = (len(ringPosList)*2-2)*20
@@ -232,7 +234,7 @@ def compositeMap(ringPosList):
 				tileNumString = f"{tileNum:03d}"
 				tileimg = cv2.imread(tileAddress+tileNumString+".png", cv2.IMREAD_UNCHANGED)
 			usedimg = cv2.resize(tileimg, (int(baseTileSize[1]*0.95), int(baseTileSize[0]*0.95)), interpolation=cv2.INTER_LINEAR)
-			baseMap = superimpose(baseMap, usedimg, realCoords)
+			baseMap = await superimpose(baseMap, usedimg, realCoords)
 
 	mask = cv2.imread(tileAddress+'mask.png', cv2.IMREAD_UNCHANGED)
 	maskR = cv2.resize(mask, (baseMap.shape[1], baseMap.shape[0]), interpolation=cv2.INTER_LINEAR)
@@ -285,21 +287,21 @@ def readRingListSave(filename):
 def addAttachments(map, attachmentLinks):
 	return None
 
-def renderMap(mapString, name, attachmentLinks=None):
+async def renderMap(mapString, name, attachmentLinks=None):
 	ringList = mapStringToTilePosSet(mapString)
-	mapRender = compositeMap(ringList)
+	mapRender = await compositeMap(ringList)
 	if name:
 		cv2.imwrite(saveAddress+name+".png", mapRender)
 	return mapRender
 
-def loadMap(mapString, name=None):
+async def loadMap(mapString, name=None):
 	print(name)
 	if name:
 		if not(exists(saveAddress+name+".png")):
-			renderMap(mapString, name)
+			await renderMap(mapString, name)
 			
 		return saveAddress+name+".png"
 
 	else:
-		cv2.imwrite(saveAddress+"TEMP"+".png", renderMap(mapString, name))
+		cv2.imwrite(saveAddress+"TEMP"+".png", await renderMap(mapString, name))
 		return saveAddress+"TEMP"+".png"
