@@ -733,7 +733,25 @@ async def createTeamChannels(guild, teams, gamename):
             for y in range(i):
                 await guild.create_text_channel(name=tRole.name + "-" + get(guild.roles, id=teams[y]).name + "-" + gamename, category=secCat, overwrites=create_overwrites(guild, [tRole, get(guild.roles, id=teams[y])]))
 
+async def createSecretChannelsGivenTeams(guild, teams, gamename):
+    secCat = get(guild.channels, name="Secret conversations")
+    if not(secCat):
+        secCat = await guild.create_category(name="Secret conversations")
 
+    for t in range(len(teams)):
+        tRole = get(guild.roles, id=teams[t])
+        for y in range(t):
+            yRole = get(guild.roles, id=teams[y])
+            await guild.create_text_channel(name=tRole.name + "-" + yRole.name + "-" + gamename, category=secCat, overwrites=create_overwrites(guild, [tRole, yRole]))
+
+async def createPlayAreaChannelsGivenTeams(guild, teams, gamename):
+    gamCat = get(guild.channels, name="Game Updates")
+    if not(gamCat):
+        gamCat = await guild.create_category(name="Game Updates")
+
+    for t in range(len(teams)):
+        tRole = get(guild.roles, id=teams[t])
+        await guild.create_text_channel(name=tRole.name + "-play-area-" + gamename, category=gamCat, overwrites=create_overwrites(guild, []))
 
 async def updateTeamChannels(guild, oldToNewTeamList):
     teamCat = get(guild.channels, name="Team channels")
@@ -767,6 +785,46 @@ async def setupTeams(ctx: discord.ApplicationContext, gamename: Option(str, "Gam
     await simpleAssignTeams(guild)
     await ctx.respond(content="Teams are Setup :)")
 
+@bot.slash_command(name="add_secret_chats")
+async def addSecrets(ctx: discord.ApplicationContext, gamename: Option(str, "GameName"), team1: Option(discord.Role, "Team 1"), team2: Option(discord.Role, "Team 2"),
+    team3: Option(discord.Role, "Team 3", required=False), team4: Option(discord.Role, "Team 4", required=False), team5: Option(discord.Role, "Team 5", required=False), 
+    team6: Option(discord.Role, "Team 6", required=False), team7: Option(discord.Role, "Team 7", required=False), team8: Option(discord.Role, "Team 8", required=False)):
+    """Creates secret chats for a new game"""
+    print("Setting secret chats")
+    guild = ctx.guild
+
+    teamList = []
+    teamList.append(team1.id)
+    teamList.append(team2.id)
+    if(team3): teamList.append(team3.id)
+    if(team4): teamList.append(team4.id)
+    if(team5): teamList.append(team5.id)
+    if(team6): teamList.append(team6.id)
+    if(team7): teamList.append(team7.id)
+    if(team8): teamList.append(team8.id)
+
+    await createSecretChannelsGivenTeams(guild, teams, gamename)
+
+@bot.slash_command(name="add_play_areas")
+async def addSecrets(ctx: discord.ApplicationContext, gamename: Option(str, "GameName"), team1: Option(discord.Role, "Team 1"), team2: Option(discord.Role, "Team 2"),
+    team3: Option(discord.Role, "Team 3", required=False), team4: Option(discord.Role, "Team 4", required=False), team5: Option(discord.Role, "Team 5", required=False), 
+    team6: Option(discord.Role, "Team 6", required=False), team7: Option(discord.Role, "Team 7", required=False), team8: Option(discord.Role, "Team 8", required=False)):
+    """Creates play areas for a new game"""
+    print("Setting play areas")
+    guild = ctx.guild
+
+    teamList = []
+    teamList.append(team1.id)
+    teamList.append(team2.id)
+    if(team3): teamList.append(team3.id)
+    if(team4): teamList.append(team4.id)
+    if(team5): teamList.append(team5.id)
+    if(team6): teamList.append(team6.id)
+    if(team7): teamList.append(team7.id)
+    if(team8): teamList.append(team8.id)
+
+    await createPlayAreaChannelsGivenTeams(guild, teams, gamename)
+
 @bot.slash_command(name="rename_team")
 async def renameTeams(ctx: discord.ApplicationContext, role: Option(discord.Role, "Role to change"), newname: Option(str, "New name for role")):
     """Renames all channeles with Role in name, also renames Role"""
@@ -786,13 +844,14 @@ factions = [
 ]
 
 @bot.slash_command(name="map")
-async def showMap(ctx: discord.ApplicationContext, mapstring: Option(str, "The Map String"), name: Option(str, "The Map's Name", required=False)):
+async def showMap(ctx: discord.ApplicationContext, mapstring: Option(str, "The Map String"), name: Option(str, "The Map's Name", required=False), forceregen: Option(bool, "Force Froggy to regenerate the map.", required=False, default=False)):
+    """Generates a map image from a string of numbers"""
     guild = ctx.guild
 
     await ctx.respond(content = "Generating Map", delete_after=30)
 
-    mapImageFile = await loadMap(mapstring, name)
-    print(mapImageFile)
+    mapImageFile = await loadMap(mapstring, name, forceregen)
+
     if name:
         fn = name + ".png"
     else:
@@ -802,7 +861,8 @@ async def showMap(ctx: discord.ApplicationContext, mapstring: Option(str, "The M
     await ctx.respond(content = "Here is your map:", file=mapFile)
 
 @bot.slash_command(name="faction_poll")
-async def dropdownPoll(ctx: discord.ApplicationContext, factionlist: Option(str, "List of emoji for factions in poll", required=False)):
+async def dropdownPoll(ctx: discord.ApplicationContext, factionlist: Option(str, "List of emoji for factions in poll", required=False), publicanswers: Option(bool, "Should results be viewable during the poll?", required=False, default=False)):
+    """Creates a poll with specific factions as options"""
     fl = factions
     if factionlist:
         fl=[]
@@ -812,51 +872,58 @@ async def dropdownPoll(ctx: discord.ApplicationContext, factionlist: Option(str,
                 fl.append(f)
             flip = not(flip)
     vw = factionDecisionRequest(ctx.guild, fl)
-    await ctx.respond(content = "Here is your test:", view=vw)
+    interaction = await ctx.respond(content = "Chose a faction:", view=vw)
+    message = await interaction.original_message()
+    poll = memPoll(message.id, publicanswers)
+    await registerPoll(poll)
 
-@bot.slash_command(name="generic_poll")
-async def dropdownPollG(ctx: discord.ApplicationContext, title: Option(str, "Poll title/question."), optionlist: Option(str, "List poll options separated by \";\"")):
+@bot.slash_command(name="poll_general")
+async def dropdownPollG(ctx: discord.ApplicationContext, title: Option(str, "Poll title/question."), optionlist: Option(str, "List poll options separated by \";\""), publicanswers: Option(bool, "Should results be viewable during the poll?", required=False, default=False)):
+    """Creates a poll with any name and options."""
     options = optionlist.split(';')
     vw = decisionRequest(options)
-    await ctx.respond(content = title, view=vw)
+    interaction = await ctx.respond(content = title, view=vw)
+    message = await interaction.original_message()
+    poll = memPoll(message.id, publicanswers)
+    await registerPoll(poll)
 
 @bot.slash_command(name="clearvotes")
 async def clearVoteFile(ctx: discord.ApplicationContext):
+    """Clears all votes saved."""
     await clearVotes()
     await ctx.respond(content = "Vote savefile cleared.", delete_after=10)
 
-async def genVoteResults(team=None):
-    votes = await getVotes()
-
-    message = ""
-    for key in votes.keys():
-        if not(team) or team == key:
-            message = message + key + ":\n"
-            for votekey in votes[key].keys():
-                message = message + "\t" + votekey + " has " + str(votes[key][votekey]) + " votes.\n"
-            message = message + "\n"
-
-    message = message[:-1]
-    return message
-
-
-@bot.slash_command(name="getvotes")
-async def getVotesDD(ctx: discord.ApplicationContext):
-    message = await genVoteResults()
-
-    await ctx.respond(content = message)
-
 @bot.message_command(name="Close Poll")
 async def closeFacPoll(ctx, message: discord.Message):
+    """Ends a poll and displays the results."""
     if message.author.id == bot.user.id and len(message.components) == 2 and message.components[1].children[0].label == "Vote":
-        view = discord.ui.View()
-        team = message.channel.name
-        out = await genVoteResults(team)
-        await clearTeamVotes(team)
+        pollID = message.id
+        out = await genVoteResults(pollID)
+        await clearPollVotes(pollID)
         await message.edit(content=message.content.split("\n")[0]+"\n\nThe results of this vote:\n" + out, view=None)
         await ctx.respond(content=message.content.split("\n")[0]+"\n\nThe results of this vote:\n" + out)
     else:
         await ctx.respond(content="This message is not a poll.", delete_after=5)
+
+@bot.slash_command(name="end_poll")
+async def endPoll(ctx: discord.ApplicationContext, messageid: Option(str, "The id of the poll to close, can be found by right clicking the poll message.")):
+    """Ends a poll and displays the results."""
+    message = await ctx.channel.fetch_message(messageid)
+    if message.author.id == bot.user.id and len(message.components) == 2 and message.components[1].children[0].label == "Vote":
+        pollID = message.id
+        out = await genVoteResults(pollID)
+        await clearPollVotes(pollID)
+        await message.edit(content=message.content.split("\n")[0]+"\n\nThe results of this vote:\n" + out, view=None)
+        await ctx.respond(content=message.content.split("\n")[0]+"\n\nThe results of this vote:\n" + out)
+    else:
+        await ctx.respond(content="This message is not a poll.", delete_after=5)
+
+
+@bot.slash_command(name="report_polls")
+async def reportpolls(ctx: discord.ApplicationContext, verbose: Option(bool, "True prints full vote data, rather than just poll name.")):
+    """Report all poll data."""
+    out = await genPollReport(ctx.guild, verbose)
+    await ctx.respond(content=out)
 
 async def circularizePic(pic):
     oPic = pic

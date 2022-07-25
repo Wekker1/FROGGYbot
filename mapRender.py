@@ -147,7 +147,7 @@ def mapStringToTilePosSet(mapString):
 			if s.startswith("tiles="):
 				cleanedString = s[6:]
 	else:
-		if not(re.search(r"[^0-9\s,{}A-Za-z]", mapString)):
+		if not(re.search(r"[^0-9\s,{}A-Za-z\-]", mapString)):
 			cleanedString = mapString
 
 	if not(cleanedString):
@@ -160,7 +160,7 @@ def mapStringToTilePosSet(mapString):
 		ringLists[0] = {"[0, 0, 0]" : re.sub(r"[{}]", "", tile_list[0])}
 		tile_list.remove(tile_list[0])
 	else:
-		ringLists[0] = {"[0, 0, 0]" : 18}
+		ringLists[0] = {"[0, 0, 0]" : '18'}
 
 	co = 0
 	ca = 2
@@ -231,7 +231,10 @@ async def compositeMap(ringPosList):
 				tileimg = processHyperlane(ring[posstr])
 			else:
 				tileNum = int(ring[posstr])
-				tileNumString = f"{tileNum:03d}"
+				if(tileNum < 0):
+					tileNumString = "null"
+				else:
+					tileNumString = f"{tileNum:03d}"
 				tileimg = cv2.imread(tileAddress+tileNumString+".png", cv2.IMREAD_UNCHANGED)
 			usedimg = cv2.resize(tileimg, (int(baseTileSize[1]*0.95), int(baseTileSize[0]*0.95)), interpolation=cv2.INTER_LINEAR)
 			baseMap = await superimpose(baseMap, usedimg, realCoords)
@@ -294,10 +297,10 @@ async def renderMap(mapString, name, attachmentLinks=None):
 		cv2.imwrite(saveAddress+name+".png", mapRender)
 	return mapRender
 
-async def loadMap(mapString, name=None):
-	print(name)
+async def loadMap(mapString, name=None,  forceRegen=False):
+	print(name + " : " + mapString)
 	if name:
-		if not(exists(saveAddress+name+".png")):
+		if not(exists(saveAddress+name+".png")) or forceRegen:
 			await renderMap(mapString, name)
 			
 		return saveAddress+name+".png"

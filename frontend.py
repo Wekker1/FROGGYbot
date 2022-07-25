@@ -39,11 +39,17 @@ fullFactions = {
 
 votesPickle = 'votes.pickle'
 
+class memPoll():
+	def __init__(self, pollID, public):
+		self.pollID = pollID
+		self.public = public
+
 class memVote():
-	def __init__(self, member, team, vote):
+	def __init__(self, pollID, member, vote):
+		self.pollID = pollID
 		self.member = member
-		self.team = team
 		self.vote = vote
+
 
 async def isVotePickleEmpty():
 	pickleFile = votesPickle
@@ -54,80 +60,197 @@ async def isVotePickleEmpty():
 				return False
 	return True
 
-async def clearVotes(clearList=[]):
+async def clearVotes(clearList={"POLLS": {}, "VOTES": []}):
 	pickleFile = votesPickle
 
 	with open(pickleFile, 'wb') as f:
 		pickle.dump(clearList, f, pickle.HIGHEST_PROTOCOL)
 
 
-async def updateVote(memVote):
+async def registerPoll(memPoll):
+	data={}
+	pickleFile = votesPickle
+	if exists(pickleFile) and os.path.getsize(pickleFile) > 0:
+		with open(pickleFile, 'rb') as f:
+			data = pickle.load(f)
+
+	pollList = data["POLLS"]
+	if memPoll.pollID in pollList.keys():
+		return -1
+	else:
+		pollList[memPoll.pollID] = memPoll
+
+	data["POLLS"] = pollList
+
+	with open(pickleFile, 'wb') as f:
+		pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
+
+	return 1
+
+async def unregisterPoll(pollID):
+	data={}
+	pickleFile = votesPickle
+	if exists(pickleFile) and os.path.getsize(pickleFile) > 0:
+		with open(pickleFile, 'rb') as f:
+			data = pickle.load(f)
+
+	pollList = data["POLLS"]
+	if pollID in pollList.keys():
+		del pollList[pollID]
+
+	data["POLLS"] = pollList
+
+	with open(pickleFile, 'wb') as f:
+		pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
+
+async def updateVote(memVoteObj):
+	data={}
 	votes = []
 	pickleFile = votesPickle
 
 	if exists(pickleFile) and os.path.getsize(pickleFile) > 0:
 		with open(pickleFile, 'rb') as f:
-			votes = pickle.load(f)
+			data = pickle.load(f)
 
-	ldVote = get(votes, member=memVote.member)
-	if(ldVote):
-		votes[votes.index(ldVote)] = memVote
-	else:
-		votes.append(memVote)
+	votes = data["VOTES"]
+	changedVote = False
+	for v in votes:
+		if v.pollID == memVoteObj.pollID and v.member == memVoteObj.member:
+			v.vote = memVoteObj.vote
+			changedVote = True
+
+	if not(changedVote):
+		votes.append(memVoteObj)
 
 	count = 0
+	voteCounts = {}
 	for vote in votes:
-		if vote.team == memVote.team:
+		if vote.pollID == memVoteObj.pollID:
 			count = count+1
+			if vote.vote in voteCounts:
+				voteCounts[vote.vote] = voteCounts[vote.vote] + 1
+			else:
+				voteCounts[vote.vote] = 1
 
+	data["VOTES"] = votes
 	with open(pickleFile, 'wb') as f:
-		pickle.dump(votes, f, pickle.HIGHEST_PROTOCOL)
+		pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
 
 	return count
 
 async def getVotes():
+	data = {}
 	votes = []
 	pickleFile = votesPickle
 
 	if exists(pickleFile) and os.path.getsize(pickleFile) > 0:
 		with open(pickleFile, 'rb') as f:
-			votes = pickle.load(f)
+			data = pickle.load(f)
 
+	votes = data["VOTES"]
 	voteTotals = {}
 	for vote in votes:
-		if vote.team in voteTotals.keys():
-			if vote.vote in voteTotals[vote.team].keys():
-				voteTotals[vote.team][vote.vote] = voteTotals[vote.team][vote.vote]+1
+		if vote.pollID in voteTotals.keys():
+			if vote.vote in voteTotals[vote.pollID].keys():
+				voteTotals[vote.pollID][vote.vote] = voteTotals[vote.pollID][vote.vote]+1
 			else:
-				voteTotals[vote.team][vote.vote] = 1
+				voteTotals[vote.pollID][vote.vote] = 1
 		else:
-			voteTotals[vote.team] = {vote.vote : 1}
+			voteTotals[vote.pollID] = {vote.vote : 1}
 
 	return voteTotals
 
-async def clearTeamVotes(team):
+async def genVoteResults(pollID=None):
+    votes = await getVotes()
+
+    message = ""
+    for key in votes.keys():
+        if not(pollID) or pollID == key:
+            for votekey in votes[key].keys():
+                message = message + "o " + str(votekey) + " has " + str(votes[key][votekey]) + " votes.\n"
+            message = message + "\n"
+
+    message = message[:-1]
+    return message
+
+async def getMessageFromPollID(guild, pollID):
+	channels = guild.text_channels
+	for ch in channels:
+		try:
+			message = await ch.fetch_message(pollID)
+			return message
+		except:
+			y = 0
+
+
+async def genPollReport(guild, verbose=False):
 	pickleFile = votesPickle
+	data = {}
+	if exists(pickleFile) and os.path.getsize(pickleFile) > 0:
+		with open(pickleFile, 'rb') as f:
+			data = pickle.load(f)
+
+	out = ""
+
+	polls = data["POLLS"]
+	for pollID in polls:
+		message = await getMessageFromPollID(guild, pollID)
+		title = message.content.split("\n")[0]
+		out = out + title + " in channel: " + message.channel.name + "\n"
+		if verbose:
+			votes = await genVoteResults(pollID)
+			out = out + votes + "\n"
+
+	out = out[:-1]
+	return out
+
+async def clearPollVotes(pollID):
+	pickleFile = votesPickle
+	data = {}
 	votes = []
 
 	if exists(pickleFile) and os.path.getsize(pickleFile) > 0:
 		with open(pickleFile, 'rb') as f:
-			votes = pickle.load(f)
+			data = pickle.load(f)
+	votes = data["VOTES"]
 
 	for mv in votes:
-		if mv.team == team:
+		if mv.pollID == pollID:
 			votes.remove(mv)
 
-	await clearVotes(votes)
+	data["VOTES"] = votes
+
+	await unregisterPoll(pollID)
+
+	await clearVotes(data)
+
+async def checkPollPublic(messageID):
+	pickleFile = votesPickle
+	data = {}
+
+	if exists(pickleFile) and os.path.getsize(pickleFile) > 0:
+		with open(pickleFile, 'rb') as f:
+			data = pickle.load(f)
+	
+	polls = data["POLLS"]
+	if messageID in polls:
+		poll = polls[messageID]
+	else:
+		return False
+	if poll:
+		return poll.public
+	else:
+		return False
 
 memVarDefault = {-1 : "MEMVARDEFAULT"}
-memVar = memVarDefault
+memVar = memVarDefault.copy()
 
 class factionDropdown(discord.ui.Select):
 	def __init__(self, placeholder, options):
 		super().__init__(placeholder=placeholder, min_values=1, max_values=1, options=options, custom_id="pollID")
 
 	async def callback(self, interaction: discord.Interaction):
-		self.memVar[interaction.user.id] = self.values[0]
+		memVar[interaction.user.id] = self.values[0]
 		await interaction.response.defer()
 
 class confirmButton(discord.ui.Button):
@@ -136,19 +259,21 @@ class confirmButton(discord.ui.Button):
 		super().__init__(label=commandName, style=discord.enums.ButtonStyle.primary, custom_id=commandName)
 
 	async def callback(self, interaction: discord.Interaction):
-		print(self.dropdown.memVar)
-		print(str(interaction.user))
+		pollID = interaction.message.id
 		uid = interaction.user.id
-		if self.dropdown.memVar == memVarDefault or not(uid in self.dropdown.memVar.keys()):
+		if memVar == memVarDefault or not(uid in memVar.keys()):
 			await interaction.response.send_message(content=f"You must select an option.", delete_after=10, ephemeral=True)
 		else:
-			if memVar[uid] != dropdown.values[0]:
+			if memVar[uid] != self.dropdown.values[0]:
 				await interaction.response.send_message(content=f"Error processing vote, please select your option in the dropdown again.", delete_after=30, ephemeral=True)
 			else:
-				newVote = memVote(interaction.user.id, interaction.channel.name, self.dropdown.memVar)
+				newVote = memVote(pollID, interaction.user.id, memVar[uid])
+				print(interaction.user.name + " " + newVote.vote)
 				totalVoteCount = await updateVote(newVote)
+				if await checkPollPublic(interaction.message.id):
+					totalVoteCount = await genVoteResults(pollID) + "\n" + str(totalVoteCount)
 				await interaction.message.edit(content=interaction.message.content.split("\n")[0] + f"\n\n{totalVoteCount} users have voted.")
-				await interaction.response.send_message(content=f"You have voted/updated your vote to: {self.dropdown.memVar}", delete_after=10, ephemeral=True)
+				await interaction.response.send_message(content=f"You have voted/updated your vote to: {memVar[uid]}", delete_after=10, ephemeral=True)
 
 def factionDecisionRequest(guild, factionOptions):
 	dropOptions = []
