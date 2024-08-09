@@ -1675,7 +1675,7 @@ async def showActionCard(ctx: discord.ApplicationContext, actioncardname: Option
 
     await ctx.respond(content="Woah look at this cool action card:", file=actionCard)
 
-courtCardListAL = [
+courtCardList = [
     "admin_union",
     "arms_union",
     "call_to_action",
@@ -1693,9 +1693,6 @@ courtCardListAL = [
     "loyal_keepers",
     "loyal_marines",
     "loyal_pilots",
-]
-
-courtCardListMZ = [
     "mass_uprising",
     "material_cartel",
     "mining_interest",
@@ -1712,19 +1709,12 @@ courtCardListMZ = [
     "sworn_guardians",
 ]
 
+async def courtAutocomplete(ctx: discord.AutocompleteContext):
+    cards = [card for card in courtCardList if card.startswith(ctx.value.lower())]
+    return cards[:25]
+
 @arcs.command(name="court_card")
-async def showCourtCard(ctx: discord.ApplicationContext, courtcardname_a_to_l: Option(str, "Name of the court card to summon (a-l).", required=False, choices=courtCardListAL, default=None), courtcardname_m_to_z: Option(str, "Name of the court card to summon (m-z).", required=False, choices=courtCardListMZ, default=None)):    
-    courtcardname = None
-    if(courtcardname_a_to_l):
-        courtcardname = courtcardname_a_to_l
-    elif(courtcardname_m_to_z):
-        courtcardname = courtcardname_m_to_z
-    else:
-        await ctx.respond("Please choose a court card from 1 of the lists.")
-
-    if (courtcardname_a_to_l) and (courtcardname_m_to_z):
-        await ctx.respond("Please choose a court card from exactly 1 of the lists (not both).")
-
+async def showCourtCard(ctx: discord.ApplicationContext, courtcardname: Option(str, "Name of the court card to summon.", required=False, autocomplete=courtAutocomplete, default=None)):    
     courtCard = discord.File("./assets/arcs/Individual Court/" + courtcardname + ".jpg", filename = courtcardname + ".jpg", description = courtcardname)
 
     await ctx.respond(content="Woah look at this cool court card:", file=courtCard)
