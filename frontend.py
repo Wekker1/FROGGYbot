@@ -160,18 +160,29 @@ async def getVotes():
 
 	return voteTotals
 
-async def genVoteResults(pollID=None):
-    votes = await getVotes()
+async def genVoteResults(pollID=None, guild=None):
+	votes = await getVotes()
 
-    message = ""
-    for key in votes.keys():
-        if not(pollID) or pollID == key:
-            for votekey in votes[key].keys():
-                message = message + "o " + str(votekey) + " has " + str(votes[key][votekey]) + " votes.\n"
-            message = message + "\n"
+	rFlag = False
+	message = ""
+	if(pollID):
+		if(guild):
+			try:
+				roleCheck = get(guild.roles, id=int(list(votes[pollID].keys())[0]))
+				if(roleCheck):
+					rFlag = True
+			except:
+				pass
+		for votekey in votes[pollID].keys():
+			if(rFlag):
+				rolefrkey = get(guild.roles, id=int(votekey))
+				message = message + "o " + str(rolefrkey) + " has " + str(votes[pollID][votekey]) + " votes.\n"
+			else:
+				message = message + "o " + str(votekey) + " has " + str(votes[pollID][votekey]) + " votes.\n"
+			message = message + "\n"
 
-    message = message[:-1]
-    return message
+	message = message[:-1]
+	return message
 
 async def getMessageFromPollID(guild, pollID):
 	channels = guild.text_channels
@@ -198,7 +209,7 @@ async def genPollReport(guild, verbose=False):
 		title = message.content.split("\n")[0]
 		out = out + title + " in channel: " + message.channel.name + "\n"
 		if verbose:
-			votes = await genVoteResults(pollID)
+			votes = await genVoteResults(pollID, guild)
 			out = out + votes + "\n"
 
 	out = out[:-1]
@@ -245,6 +256,42 @@ async def checkPollPublic(messageID):
 memVarDefault = {-1 : "MEMVARDEFAULT"}
 memVar = memVarDefault.copy()
 
+class roleDropdown(discord.ui.Select):
+	def __init__(self, placeholder, options):
+		super().__init__(placeholder=placeholder, min_values=1, max_values=1, options=options, custom_id="pollID")
+
+	async def callback(self, interaction: discord.Interaction):
+		memVar[interaction.user.id] = self.values[0]
+		await interaction.response.defer()
+
+class confirmRoleButton(discord.ui.Button):
+	def __init__(self, commandName, dropdown):
+		self.dropdown = dropdown
+		super().__init__(label=commandName, style=discord.enums.ButtonStyle.primary, custom_id=commandName+"_role")
+
+	async def callback(self, interaction: discord.Interaction):
+		pollID = interaction.message.id
+		uid = interaction.user.id
+		if memVar == memVarDefault or not(uid in memVar.keys()):
+			await interaction.response.send_message(content=f"You must select an option.", delete_after=10, ephemeral=True)
+		else:
+			if memVar[uid] != self.dropdown.values[0]:
+				await interaction.response.send_message(content=f"Error processing vote, please select your option in the dropdown again.", delete_after=30, ephemeral=True)
+			else:
+				role = get(interaction.guild.roles, id=int(memVar[uid]))
+				if(role in interaction.user.roles):
+					newVote = memVote(pollID, interaction.user.id, memVar[uid])
+					await interaction.response.send_message(content=f"You cannot vote for your own team!", delete_after=10, ephemeral=True)
+				else:
+					newVote = memVote(pollID, interaction.user.id, memVar[uid])
+					print(interaction.user.name + " " + newVote.vote)
+					totalVoteCount = await updateVote(newVote)
+					if await checkPollPublic(interaction.message.id):
+						totalVoteCount = await genVoteResults(pollID, interaction.guild) + "\n" + str(totalVoteCount)
+
+					await interaction.message.edit(content=interaction.message.content.split("\n")[0] + "\n" + interaction.message.content.split("\n")[1] + f"\n{totalVoteCount} users have voted.")
+					await interaction.response.send_message(content=f"You have voted/updated your rolevote to: {role.name}", delete_after=10, ephemeral=True)
+
 class factionDropdown(discord.ui.Select):
 	def __init__(self, placeholder, options):
 		super().__init__(placeholder=placeholder, min_values=1, max_values=1, options=options, custom_id="pollID")
@@ -271,8 +318,9 @@ class confirmButton(discord.ui.Button):
 				print(interaction.user.name + " " + newVote.vote)
 				totalVoteCount = await updateVote(newVote)
 				if await checkPollPublic(interaction.message.id):
-					totalVoteCount = await genVoteResults(pollID) + "\n" + str(totalVoteCount)
-				await interaction.message.edit(content=interaction.message.content.split("\n")[0] + f"\n\n{totalVoteCount} users have voted.")
+					totalVoteCount = await genVoteResults(pollID, interaction.guild) + "\n" + str(totalVoteCount)
+
+				await interaction.message.edit(content=interaction.message.content.split("\n")[0] + "\n" + interaction.message.content.split("\n")[1] + f"\n{totalVoteCount} users have voted.")
 				await interaction.response.send_message(content=f"You have voted/updated your vote to: {memVar[uid]}", delete_after=10, ephemeral=True)
 
 def factionDecisionRequest(guild, factionOptions):
@@ -281,7 +329,6 @@ def factionDecisionRequest(guild, factionOptions):
 	keleresFlag = False
 	for faction in factionOptions:
 		shortName = re.sub(r"[-']", "", faction)
-		longName = ""
 		emoji = ""
 		if faction.startswith("Keleres"):
 			if not(keleresFlag):
@@ -291,13 +338,33 @@ def factionDecisionRequest(guild, factionOptions):
 				dropOptions.append(discord.SelectOption(label=shortName, description=longName, emoji=emoji))
 				keleresFlag = True
 		else:
-			longName = fullFactions[faction]
+			if(faction in fullFactions):
+				longName = fullFactions[faction]
+			else:
+				longName = shortName
 			emoji = get(guild.emojis, name=shortName)
 			dropOptions.append(discord.SelectOption(label=shortName, description=longName, emoji=emoji))
 
 	vw = discord.ui.View(timeout=None)
 	sel = factionDropdown(placeholder="Faction Name", options = dropOptions)
 	but = confirmButton("Vote", sel)
+	vw.add_item(sel)
+	vw.add_item(but)
+	return vw
+
+def decisionRoleRequest(optionList, guild):
+	roleList = []
+	for option in optionList:
+		roles = get(guild.roles, id=option)
+		if(not(roles.name.lower().endswith("captain"))):
+			roleList.append(roles)
+	dropOptions = []
+	for role in roleList:
+		if(role):
+			dropOptions.append(discord.SelectOption(label=role.name, value=str(role.id)))
+	vw = discord.ui.View(timeout=None)
+	sel = roleDropdown(placeholder="Choose one option:", options = dropOptions)
+	but = confirmRoleButton("Vote", sel)
 	vw.add_item(sel)
 	vw.add_item(but)
 	return vw
