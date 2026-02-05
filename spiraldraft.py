@@ -238,7 +238,7 @@ class Spiral():
 					worms = worms + v
 			fullEXstr = f"{skips} {leg} {worms}"
 
-			font = ImageFont.truetype("./fonts/MyriadPro-bold.ttf", 32)
+			font = ImageFont.truetype("./fonts/MyriadPro-Bold.ttf", 32)
 
 			localstring = f"{localr}/{locali} {localEXstr}"
 			draw.text((470,int(120-(h/2)+h*1.5)), localstring, (0,0,0), font=font)

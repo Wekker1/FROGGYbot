@@ -14,17 +14,17 @@ import dataLookup
 from dataLookup import *
 import asyncio
 
-assetAddress = "assets\\"
+assetAddress = "assets/"
 subAddresses = {
-	"unit" : "units\\smUnit\\",
-	"tiles": "systems\\clean\\tiles\\",
-	"attachments" : "tokens\\",
-		"space" : "space\\",
-		"planet": "planet\\",
-	"tokens" : "tokens\\"
+	"unit" : "units/smUnit/",
+	"tiles": "systems/clean/tiles/",
+	"attachments" : "tokens/",
+		"space" : "space/",
+		"planet": "planet/",
+	"tokens" : "tokens/"
 }
 
-saveAddress = "saves\\"
+saveAddress = "saves/"
 
 baseTileSize = (260,300)
 a1step = (-1, 0)
@@ -281,7 +281,7 @@ def getRealCoordsFromPos(posStr, center):
 	return realCoords
 
 async def compositeMap(ringPosList):
-	tileAddress=assetAddress+subAddresses["tiles"]
+	tileAddress="./" + assetAddress+subAddresses["tiles"]
 	numRings = getNumRingsFromRingList(ringPosList)
 	buffer = (numRings*2-2)*20
 

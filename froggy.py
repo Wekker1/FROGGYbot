@@ -1,3 +1,4 @@
+# Bot/File stuff
 import discord
 import logging
 from discord.ext import commands
@@ -11,8 +12,9 @@ import os
 import io
 import pandas
 from os.path import exists
-import mysql.connector
 from dotenv import load_dotenv
+
+# Froggy specific stuff
 import mapRender
 from mapRender import *
 import playareaRender
@@ -21,11 +23,18 @@ import frontend
 from frontend import *
 import froghandler
 from froghandler import *
+import spiraldraft
+from spiraldraft import *
+import components
+from components import *
+
+# Math and Time
 import datetime
 from datetime import *
 import time as Time
 import sys
 import numpy as np
+
 # Robodane import stuff
 import asyncio
 import sys, getopt
@@ -43,9 +52,12 @@ import functools
 import typing
 import spiraldraft
 from spiraldraft import *
+
 # SCPT stuff
 import csv
 from io import StringIO
+from typing import Union
+from reader import make_reader
 
 # robodane vars
 levDistMin = 2
@@ -67,188 +79,196 @@ admin = bot.create_group("admin", "Admin commands")
 arcs = bot.create_group("arcs", "ARCs commands")
 
 guildIDs = [
-856341009218666506,  # Wekker Test Sever
-847560709730730064,  # Community Server
-1049517171233005608, # Root Server
-]
+        856341009218666506,  # Wekker Test Sever
+        847560709730730064,  # Community Server
+        1049517171233005608, # Root Server
+        409044671508250625,  # SCPT Server
+        ]
+
+commPlaysIDs = [
+
+        ]
 
 ## Work on combining these:
 pickleFiles = {
-856341009218666506 : 'testAss.pickle',
-847560709730730064 : 'commAss.pickle',
-1049517171233005608 : 'root.pickle',
-409044671508250625 : 'scpt.pickle',
-"admin" : "admin.pickle",
-}
+        856341009218666506 : 'testAss.pickle',
+        847560709730730064 : 'commAss.pickle',
+        1049517171233005608 : 'root.pickle',
+        409044671508250625 : 'scpt.pickle',
+        "admin" : "admin.pickle",
+        }
 
 backUps = {
-856341009218666506 : 'testAss.pickle',
-847560709730730064 : 'restoreList.txt',
-1049517171233005608 : 'root.pickle',
-409044671508250625 : 'scpt.pickle'
-}
+        856341009218666506 : 'testAss.pickle',
+        847560709730730064 : 'restoreList.txt',
+        1049517171233005608 : 'root.pickle',
+        409044671508250625 : 'scpt.pickle'
+        }
 
 # Team role ids from teams 1-7 in order
 CPTIteams = [
-1265366097725624381,
-1265366245058809966,
-1265366359236149278,
-1265366427754434742,
-]
+        1311388595071877180,
+        1318310323287232684,
+        1311388071987511396,
+        1311388350707400784,
+        1318310132525957161,
+        1328819699370295326,
+        ]
 spectator = 0
 
 # Team role ids for chutes and ladders
 cnl = [
-1034635887297974284,
-1034635790518587483,
-1034635716732395610,
-1034636021398253638,
-]
+        1034635887297974284,
+        1034635790518587483,
+        1034635716732395610,
+        1034636021398253638,
+        ]
 
 # Root Team Roles
 rootTeams = [
-1049525887718133780,
-1049700036226846770,
-1049700548221349958,
-1049700864023085067,
-]
+        1049525887718133780,
+        1049700036226846770,
+        1049700548221349958,
+        1049700864023085067,
+        ]
 
 
 npcRoles = [
-# Bots
-963573981632405517,
-874051960372883467,
-958645682611302444,
-964306086955999264,
-874051960372883467,
-951970331386585121,
-953386946749681757,
-964311549466517534,
-1051279439247446036,
+        # Bots
+        963573981632405517,
+        874051960372883467,
+        958645682611302444,
+        964306086955999264,
+        874051960372883467,
+        951970331386585121,
+        953386946749681757,
+        964311549466517534,
+        1051279439247446036,
 
-# Users - Community
-951230650680225863, # GM
-951999879637516418, # Spectator
+        # Users - Community
+        951230650680225863, # GM
+        951999879637516418, # Spectator
 
-# Users - Root
-1049525124711333899, # GM
-1049794341163520070, # Executer
+        # Users - Root
+        1049525124711333899, # GM
+        1049794341163520070, # Executer
 
-# Test Users
-964333967807500310,
+        # Test Users
+        964333967807500310,
 
-409044671508250625, # SCPT Everyone
-]
+        409044671508250625, # SCPT Everyone
+        ]
 
 GMRoles = {
-847560709730730064 : 951230650680225863, # Community
-856341009218666506 : 964333967807500310, # Test
-1049517171233005608 : 1111726048153964574,
-409044671508250625 : 814618314952146955, # SCPT
-}
+        847560709730730064 : 951230650680225863, # Community
+        856341009218666506 : 964333967807500310, # Test
+        1049517171233005608 : 1111726048153964574,
+        409044671508250625 : 814618314952146955, # SCPT
+        }
 
 GMRolesList = [
-951230650680225863, # Community
-964333967807500310, # Test
-1049525124711333899, # Root
-814618314952146955, # SCPT
-]
+        951230650680225863, # Community
+        964333967807500310, # Test
+        1049525124711333899, # Root
+        814618314952146955, # SCPT
+        ]
 
 Testroles = [
-963563122294149180,
-963563192137699339,
-963563228888186931,
-]
+        963563122294149180,
+        963563192137699339,
+        963563228888186931,
+        ]
 
 roleListByGuild = {
-856341009218666506 : Testroles,
-847560709730730064 : CPTIteams,
-1049517171233005608 : rootTeams,
-409044671508250625 : [],
-}
+        856341009218666506 : Testroles,
+        847560709730730064 : CPTIteams,
+        1049517171233005608 : rootTeams,
+        409044671508250625 : [],
+        }
 
 playerRoleFromGuild = {
-856341009218666506 : Testroles[0],
-847560709730730064 : 1052329596525236265,
-1049517171233005608 : None, # Root does not have a generic player role.
-409044671508250625 : None, # SCPT does not have a generic player role.
-}
+        856341009218666506 : Testroles[0],
+        847560709730730064 : 1441171284309442571,
+        1049517171233005608 : None, # Root does not have a generic player role.
+        409044671508250625 : None, # SCPT does not have a generic player role.
+        }
 
 emojiID = {
-"AssaultRolling"       : 1265787998755356752,
-"RaidRolling"          : 1265785421804339211,
-"SkirmishRolling"      : 1265787997526298804,
-"AssaultDie"           : 1265792527789850718,
-"RaidDie"              : 1265792263787647051,
-"SkirmishDie"          : 1265792526707593338,
-"NumberDie"            : 1265792525206159483,
-"EventDie"             : 1265792528540500030,
-"Die_Hit"              : 1254934177875230800, 
-"Die_Hit_Building"     : 1254934178865348710, 
-"Die_Self"             : 1254934182422118563, 
-"Die_Raid"             : 1254934181264359424, 
-"Die_Intercept"        : 1254934180140159059, 
-"Resource_Fuel"        : 1254942078258118727, 
-"Resource_Material"    : 1254942079130402956, 
-"Resource_Psionic"     : 1254942079964942418, 
-"Resource_Weapon"      : 1265380019002150932, 
-"Resource_Relic"       : 1254942081202393138,
-}
+        "AssaultRolling"       : 1265787998755356752,
+        "RaidRolling"          : 1265785421804339211,
+        "SkirmishRolling"      : 1265787997526298804,
+        "AssaultDie"           : 1265792527789850718,
+        "RaidDie"              : 1265792263787647051,
+        "SkirmishDie"          : 1265792526707593338,
+        "NumberDie"            : 1265792525206159483,
+        "EventDie"             : 1265792528540500030,
+        "Die_Hit"              : 1254934177875230800, 
+        "Die_Hit_Building"     : 1254934178865348710, 
+        "Die_Self"             : 1254934182422118563, 
+        "Die_Raid"             : 1254934181264359424, 
+        "Die_Intercept"        : 1254934180140159059, 
+        "Resource_Fuel"        : 1254942078258118727, 
+        "Resource_Material"    : 1254942079130402956, 
+        "Resource_Psionic"     : 1254942079964942418, 
+        "Resource_Weapon"      : 1265380019002150932, 
+        "Resource_Relic"       : 1254942081202393138,
+        }
 
 dieLookup = {
-    "Skirmish" : {
-        1 : [],
-        2 : [],
-        3 : [],
-        4 : ["Die_Hit"],
-        5 : ["Die_Hit"],
-        6 : ["Die_Hit"],
-    },
-    "Assualt" : {
-        1 : [],
-        2 : ["Die_Self", "Die_Hit"],
-        3 : ["Die_Intercept", "Die_Hit"],
-        4 : ["Die_Hit", "Die_Hit", "Die_Self"],
-        5 : ["Die_Hit", "Die_Hit"],
-        6 : ["Die_Self", "Die_Hit"],
-    },
-    "Raid" : {
-        1 : ["Die_Raid", "Die_Raid", "Die_Intercept"],
-        2 : ["Die_Raid", "Die_Self"],
-        3 : ["Die_Intercept"],
-        4 : ["Die_Self", "Die_Hit_Building"],
-        5 : ["Die_Hit_Building", "Die_Raid"],
-        6 : ["Die_Self", "Die_Hit_Building"],
-    },
-    "Raid" : {
-        1 : ["Die_Raid", "Die_Raid", "Die_Intercept"],
-        2 : ["Die_Raid", "Die_Self"],
-        3 : ["Die_Intercept"],
-        4 : ["Die_Self", "Die_Hit_Building"],
-        5 : ["Die_Hit_Building", "Die_Raid"],
-        6 : ["Die_Self", "Die_Hit_Building"],
-    },
-    "Number" : {
-        1 : ["1"],
-        2 : ["2"],
-        3 : ["3"],
-        4 : ["4"],
-        5 : ["5"],
-        6 : ["6"],
-    },
-    "Event" : {
-        1 : ["Hexagon_Crisis"],
-        2 : ["Arrow_Crisis"],
-        3 : ["Moon_Crisis"],
-        4 : ["Hexagon_Event"],
-        5 : ["Arrow_Event"],
-        6 : ["Moon_Event"],
-    },
-}
+        "Skirmish" : {
+            1 : [],
+            2 : [],
+            3 : [],
+            4 : ["Die_Hit"],
+            5 : ["Die_Hit"],
+            6 : ["Die_Hit"],
+            },
+        "Assualt" : {
+            1 : [],
+            2 : ["Die_Self", "Die_Hit"],
+            3 : ["Die_Intercept", "Die_Hit"],
+            4 : ["Die_Hit", "Die_Hit", "Die_Self"],
+            5 : ["Die_Hit", "Die_Hit"],
+            6 : ["Die_Self", "Die_Hit"],
+            },
+        "Raid" : {
+            1 : ["Die_Raid", "Die_Raid", "Die_Intercept"],
+            2 : ["Die_Raid", "Die_Self"],
+            3 : ["Die_Intercept"],
+            4 : ["Die_Self", "Die_Hit_Building"],
+            5 : ["Die_Hit_Building", "Die_Raid"],
+            6 : ["Die_Self", "Die_Hit_Building"],
+            },
+        "Raid" : {
+            1 : ["Die_Raid", "Die_Raid", "Die_Intercept"],
+            2 : ["Die_Raid", "Die_Self"],
+            3 : ["Die_Intercept"],
+            4 : ["Die_Self", "Die_Hit_Building"],
+            5 : ["Die_Hit_Building", "Die_Raid"],
+            6 : ["Die_Self", "Die_Hit_Building"],
+            },
+        "Number" : {
+            1 : ["1"],
+            2 : ["2"],
+            3 : ["3"],
+            4 : ["4"],
+            5 : ["5"],
+            6 : ["6"],
+            },
+        "Event" : {
+            1 : ["Hexagon_Crisis"],
+            2 : ["Arrow_Crisis"],
+            3 : ["Moon_Crisis"],
+            4 : ["Hexagon_Event"],
+            5 : ["Arrow_Event"],
+            6 : ["Moon_Event"],
+            },
+        }
 
 newMemberFlag = "pFlagNewMembers"
 reactChannelsKey = "rChannels"
 bannedThreadsKey = "bThreads"
+bannedPhrasesKey = "bPhrases"
 
 class adminObj():
     id = "admin"
@@ -541,9 +561,41 @@ async def simpleGetMemberAssignments(guild):
         conString = 'Pickle Empty'
     return conString
 
+@tasks.loop(hours=1)
+async def SCPT_RSS():
+    scptID = guildIDs[3]
+    guild = get(bot.guilds, id=scptID)
+    episode_discussion_id = 1100630695606501376
+    feedChannel = get(guild.channels, id=episode_discussion_id)
+    
+    feed_url = "https://feed.podbean.com/spacecatspeaceturtles/feed.xml"
+
+    reader = make_reader("db.sqlite")
+
+    reader.add_feed(feed_url, exist_ok=True)
+    reader.update_feeds()
+
+    feed = reader.get_feed(feed_url)
+
+    latest = list(reader.get_entries())[0]
+    title = latest.title
+    link = latest.link
+    desc = latest.summary
+
+    ep_is_posted = get(feedChannel.threads, name=title)
+    if(ep_is_posted):
+        return
+
+    episode_embed = discord.Embed(title=title, url=link, description=desc, author=discord.EmbedAuthor("Space Cats Peace Turtles", url=r"https://www.spacecatspeaceturtles.com/", 
+        icon_url=r"https://pbcdn1.podbean.com/imglogo/image-logo/2044403/Podcast-Logo1400X1400_300x300.jpg"), color=0xEF4136, thumbnail=r"https://pbcdn1.podbean.com/imglogo/image-logo/2044403/Podcast-Logo1400X1400_300x300.jpg")
+    feedChannel.create_thread(name=title, embed=episode_embed)
+
 @bot.event
 async def on_ready():
     print('Logged on as {0}!'.format(bot.user))
+    await bot.sync_commands()
+    SCPT_RSS.start()
+
     guild = get(bot.guilds, id=guildIDs[1])
 
     # Persistency for slash commands with buttons
@@ -589,6 +641,7 @@ async def on_ready():
     view = decisionRoleRequest(rList, guild)
     bot.add_view(view)
 
+
 async def loadReactChannels(guild):
     assignMemory = await pickleLoadMemberData(guild)
     if not(reactChannelsKey in assignMemory):
@@ -608,21 +661,64 @@ async def writeBannedThreads(guild, bannedThreads):
     assignMemory[bannedThreadsKey] = bannedThreads
     await pickleWrite(assignMemory, guild)
 
-urlfindstring = '^((http|ftp|https):\/\/)?([\w_-]+(?:(?:\.[\w_-]+)+))([\w.,@?^=%&:\/~+#-]*[\w@?^=%&\/~+#-])?'
+async def loadBannedPhrases(guild):
+    assignMemory = await pickleLoadMemberData(guild)
+    if not(bannedPhrasesKey in assignMemory):
+        return {}
+    else:
+        return assignMemory[bannedPhrasesKey]
+
+async def writeBannedPhrases(guild, bannedPhrases):
+    assignMemory = await pickleLoadMemberData(guild)
+    assignMemory[bannedPhrasesKey] = bannedPhrases
+    await pickleWrite(assignMemory, guild)
+
+urlfindstring = r"([a-zA-Z\d]+:\\\\)?((\w+:\w+@)?([a-zA-Z\d.-]+\.([A-Za-z]{2,4}))(:\d+)?(\.*)?)"
 
 @bot.event
 async def on_message(message):
     guild = message.guild
     if not(guild):
         return
+    if (message.author == bot.user):
+        return
+    for role in message.author.roles:
+        if role.id in GMRoles.values():
+            # return
+            pass
+
+    mContent = message.clean_content
+    bannedPhrasesDict = await loadBannedPhrases(guild)
+    bannedPhrases = list(bannedPhrasesDict.keys())
+    delMessageFlag = False
+    delinquintPhrases = []
+    for banPhrase in bannedPhrases:
+        if banPhrase in mContent.lower():
+            linkCheck = bannedPhrasesDict[banPhrase]
+            if(linkCheck):
+                groups = re.match(urlfindstring, mContent).groups()
+                tldCandidates = groups[3].split(".")
+                for tld in tldCandidates:
+                    if tld.upper() in topleveldomains:
+                        delMessageFlag = True
+                        delinquintPhrases.append(banPhrase)
+            else:
+                delMessageFlag = True
+                delinquintPhrases.append(banPhrase)
+    if delMessageFlag:
+        author = message.author
+        await message.delete()
+        phrases = ""
+        for phrase in delinquintPhrases:
+            phrases+= "* " + phrase + "\n"
+        await author.send("Hello, " + author.name + " your recent message in " + guild.name +" has been deleted as it contains the following banned phrase(s): \n" + phrases + "\nPlease contact a moderator of that discord if you believe your message was deleted in error.")
+        return
+
     reactChannels = await loadReactChannels(guild)
+
     if(message.channel.type == discord.ChannelType.public_thread):
         thread = message.channel
-        gmTest = False
-        for role in message.author.roles:
-            if role.id in GMRoles.values():
-                gmTest = True
-        if(thread.parent.type == discord.ChannelType.forum and thread.parent.id in reactChannels and (not(gmTest) or thread.name.startswith("Frog Test"))):
+        if(thread.parent.type == discord.ChannelType.forum and thread.parent.id in reactChannels):
             author = message.author
             threadlen = len(await thread.history(limit=10).flatten())
             if(len(message.attachments) < 1 and (re.search(urlfindstring, message.content) == None) and threadlen < 2):
@@ -630,78 +726,39 @@ async def on_message(message):
                 print(thread.name)
                 await thread.delete()
                 await author.send("Sorry, " + guild.name + " Admins do not allow text posts in " + thread.parent.name + " if you believe your post was deleted in error, please contact an Admin.")
-        
-    else:
-        if(not(message.content.startswith('!'))):
-            return
-
-        if(not(message.guild.id in GMRoles)):
-            return
-
-        gmRole = get(message.guild.roles, id=GMRoles[message.guild.id])
-        if(not(gmRole in message.author.roles)):
-            return
-        print("** Command Initiated **")
-        guild = message.guild
-
-        if message.content.startswith('!toggleSpectator'):
-            member = message.author
-            print(member.name)
-
-        if message.content.startswith('!getEligibleMembers'):
-            memberList = await PCmembers(guild)
-            for member in memberList:
-                print(member.name + " : " + str(member.id))
-
-        if message.content.startswith('!assignTeams'):
-            await simpleAssignTeams(guild)
-
-        if message.content.startswith('!clearAllTeams'):
-            await simpleClearAllTeams(guild)
-
-        if message.content.startswith('!printPickle'):
-            print(await simpleGetMemberAssignments(guild))
-
-        if message.content.startswith('!restoreRoles'):
-            print("Starting restore...")
-            await loadBackupList(guild)
-            print("Roles restored.")
-
-        if message.content.startswith("!reportUnassignedMembers"):
-            unassignedList = await reportUnassignedMembers(guild)
-            attachOut = ""
-            for member in unassignedList:
-                attachOut = attachOut + member.name + "\n"
-            attachOut = attachOut[0:-1]
-            fileOut = discord.File(io.StringIO(attachOut), filename="UnassignedList.txt", description="A list of members with no role.")
-            await message.reply(content = "Here's a list of members with no role:", file=fileOut)
-
-        if message.content.startswith("!fixPickle"):
-            await recreatePickle(guild)
-
-        print("** Command Finalized **")
 
 @bot.event
 async def on_member_join(member):
     guild = member.guild
     if(guild.id in guildIDs):
-        print(member.name + " joined!")
+        # print(member.name + " joined!")
         if(not(await reassignMemberTeam(member, guild))):
             if(not(await isPickleEmpty(guild))):
                 assignMemory = await pickleLoadMemberData(guild)
                 if newMemberFlag in assignMemory and assignMemory[newMemberFlag]:
                     await simpleAddSingleMemberToTeam(member, guild)
 
-@admin.command(name="send_frog_message")
-async def sendMessageAsFroggy(ctx: discord.ApplicationContext, message: Option(str, "The message to send."), channel: Option(discord.TextChannel, "The channel to send message in.", required=False, default=None)):
-    if not(channel):
-        channel = ctx.channel
+@admin.command(name="list_guilds")
+async def listAllGuilds(ctx: discord.ApplicationContext):
+    guildnames = []
+    guildids = []
+    for guild in bot.guilds:
+        guildnames.append(guild.name)
+        guildids.append(guild.id)
 
-    if message == "nnnyyy":
-        message = "<#1244824483186081845>"
+    outList = ""
+    for i in range(len(guildnames)):
+        outList = outList + guildnames[i] + " : " + str(guildids[i]) + "\n"
 
-    await ctx.respond("Sending message.", ephemeral=True, delete_after=10)
-    await channel.send(message)
+    await ctx.respond("Froggy has been added to the following guilds:\n" + outList);
+
+@admin.command(name="sync_category_all")
+async def syncAllChannels(ctx: discord.ApplicationContext, category: Option(discord.CategoryChannel, "The category to sync.", required=True)):
+    await ctx.defer()
+    for channel in category.channels:
+        await channel.edit(sync_permissions=True)
+
+    await ctx.respond("Channels in " + category.name + " updated to sync permissions.", delete_after=10)
 
 @admin.command(name="save_react_channel")
 async def savereact(ctx: discord.ApplicationContext, channel: Option(discord.SlashCommandOptionType.channel, "The channel to tune in to.")):
@@ -766,7 +823,7 @@ class ButtonTest(discord.ui.Button):
         return True
 
 @draft.command(name="generate_spiral_draft")
-async def generateEvent(ctx: discord.ApplicationContext, numslices: Option(int, "Number of slices to generate.", choices = [1, 2, 3, 4, 5, 6, 7, 8], default=6), treat_anomaly_planets_as_blue : Option(bool, "Treat cormund and everra as if there were blue tiles.", default=True, required = False)):# , include_te : Option(bool, "Include temp systems.", required = False, default=False)):
+async def generateSpiral(ctx: discord.ApplicationContext, numslices: Option(int, "Number of slices to generate.", choices = [1, 2, 3, 4, 5, 6, 7, 8], default=6), treat_anomaly_planets_as_blue : Option(bool, "Treat cormund and everra as if there were blue tiles.", default=True, required = False)):# , include_te : Option(bool, "Include temp systems.", required = False, default=False)):
     draft = Spiral(numslices, treat_anomaly_planets_as_blue)
     await ctx.respond("Generating Spiral Draft")
     slices = draft.generate_and_verify()
@@ -779,6 +836,24 @@ async def generateEvent(ctx: discord.ApplicationContext, numslices: Option(int, 
     slicesImage = draft.generateImages()
     draftFile = discord.File(slicesImage, filename=slicesImage[len(spiraldraft.path):])
     await ctx.edit(content=f"Spiral Draft Generated: {sliceStrings}", file=draftFile)
+
+temp_art_path = {
+        "image/png" : "./temp/upload.png",
+        "image/jpg" : "./temp/upload.jpg",
+        "image/jpeg": "./temp/upload.jpeg",
+        }
+
+@misc.command(name="generate_event", guild_ids=guildIDs)
+async def generateEvent(ctx: discord.ApplicationContext, name: Option(str, "The name of the event.", max_length=24), complexity: Option(int, "The complexity or impact level of the event (1-3).", choices = [1, 2, 3], default = 1), art: Option(discord.Attachment, "500x550px art for the event, as a PNG or JPG.", required=False)):
+    passedArt = None
+    if art:
+        if art.content_type in temp_art_path.keys():
+            passedArt = temp_art_path[art.content_type]
+            await art.save(passedArt)
+
+    new_event = Event(name, complexity, passedArt)
+    event_modal = componentModal(new_event, title=name)
+    await ctx.send_modal(event_modal)
 
 @admin.command(name="command_message")
 async def say(ctx: discord.ApplicationContext):
@@ -827,13 +902,13 @@ async def clearRole(ctx: discord.ApplicationContext, role: Option(discord.Role, 
             if member.id in data:
                 if data[member.id] == role.id:
                     del data[member.id]
-    
+
     await pickleWrite(data, guild)
     await ctx.respond(role.mention + " has been cleared.", delete_after=10)
 
 @admin.command(name="add_members_to_role")
 async def addToRole(ctx: discord.ApplicationContext, role: Option(discord.Role, "The Role"), memberone: Option(discord.Member, "Member 1"), membertwo: Option(discord.Member, "Member 2", required=False, default=None), 
-        memberthree: Option(discord.Member, "Member 3", required=False, default=None), memberfour: Option(discord.Member, "Member 4", required=False, default=None), memberfive: Option(discord.Member, "Member 5", required=False, default=None)):
+                    memberthree: Option(discord.Member, "Member 3", required=False, default=None), memberfour: Option(discord.Member, "Member 4", required=False, default=None), memberfive: Option(discord.Member, "Member 5", required=False, default=None)):
     """Add members to a role"""
     guild = ctx.guild
     gmRole = get(guild.roles, id=GMRoles[guild.id])
@@ -876,29 +951,29 @@ async def copyFromRole(ctx: discord.ApplicationContext, rolefrom: Option(discord
     await ctx.edit("Players added to " + roleto.mention)
 
 ANSICOLORCODES = {
-    "FORMAT" : {"BOLD" : "1", "UNDER" : "4"},
-    "TEXT" : {
-        "BLACK"     : "30",
-        "RED"       : "31",
-        "GREEN"     : "32",
-        "YELLOW"    : "33",
-        "BLUE"      : "34",
-        "MAGENTA"   : "35",
-        "CYAN"      : "36",
-        "WHITE"     : "37",
-    },
-    "BACKGROUND" : {
-        "AQUA"      : "40",
-        "ORANGE"    : "41",
-        "DARKGREY"  : "42",
-        "BLUEGREY"  : "43",
-        "GREY"      : "44",
-        "INDIGO"    : "45",
-        "LIGHTGREY" : "46",
-        "WHITE"     : "47",
-    },
-    "RESET" : "0",
-}
+        "FORMAT" : {"BOLD" : "1", "UNDER" : "4"},
+        "TEXT" : {
+            "BLACK"     : "30",
+            "RED"       : "31",
+            "GREEN"     : "32",
+            "YELLOW"    : "33",
+            "BLUE"      : "34",
+            "MAGENTA"   : "35",
+            "CYAN"      : "36",
+            "WHITE"     : "37",
+            },
+        "BACKGROUND" : {
+            "AQUA"      : "40",
+            "ORANGE"    : "41",
+            "DARKGREY"  : "42",
+            "BLUEGREY"  : "43",
+            "GREY"      : "44",
+            "INDIGO"    : "45",
+            "LIGHTGREY" : "46",
+            "WHITE"     : "47",
+            },
+        "RESET" : "0",
+        }
 
 def genANSICOLORCODE(form=0, textColor=0, bkgColor=0):
     return f"\u001b[{form};{textColor};{bkgColor}m"
@@ -949,7 +1024,7 @@ async def addAllToRole(ctx: discord.ApplicationContext, file: Option(discord.Att
     updateOn = int(totalNum/20)
     if(updateOn<1): 
         updateOn = 1
-    
+
     emb = discord.Embed(color=discord.Color.gold())
     emb.add_field(name="Processing...", value=progress_bar(progress=0, value=0, size=pbSize))
     await ctx.respond(content=f"Adding users to roles using {file.filename}.", embed=emb)
@@ -965,30 +1040,36 @@ async def addAllToRole(ctx: discord.ApplicationContext, file: Option(discord.Att
         fullnameplate = row[0]
         splituser = fullnameplate.split("#")
         if(len(splituser) < 2):
-            notfoundList.append(fullnameplate)
+            username = splituser[0]
+            userdis = None
         else:
             username = splituser[0]
             userdis = splituser[1]
-            rolename = row[1]
 
+        rolename = row[1]
+
+        if(userdis):
             user = get(guild.members, name=username, discriminator=userdis)
-            role = get(guild.roles, name=rolename)
-            if(user and role):
-                await user.add_roles(role)
-            else:
-                if(not(user)):
-                    notfoundList.append(fullnameplate)
-                if(not(role)):
-                    missingrole.add(rolename)
+        else:
+            user = get(guild.members, name=username)
 
-            if(count%updateOn==0):
-                progress = count / totalNum
-                upProgress = progress_bar(progress=progress, value=int(progress*100), size=pbSize)
-                emb.clear_fields()
-                emb.add_field(name="Processing...", value=upProgress)
-                await ctx.edit(embed=emb)
+        role = get(guild.roles, name=rolename)
+        if(user and role):
+            await user.add_roles(role)
+        else:
+            if(not(user)):
+                notfoundList.append(fullnameplate)
+            if(not(role)):
+                missingrole.add(rolename)
 
-            count = count+1
+        if(count%updateOn==0):
+            progress = count / totalNum
+            upProgress = progress_bar(progress=progress, value=int(progress*100), size=pbSize)
+            emb.clear_fields()
+            emb.add_field(name="Processing...", value=upProgress)
+            await ctx.edit(embed=emb)
+
+        count = count+1
 
     finProgress = progress_bar(progress=1, value=100, size=pbSize)
     emb.clear_fields()
@@ -1222,81 +1303,7 @@ async def generateRoles(ctx: discord.ApplicationContext, inccaprole: Option(bool
 
     await ctx.respond("Did the thing :)")
 
-@admin.command(name="captainizemessage")
-async def captainizeMessage(ctx: discord.ApplicationContext, inccaprole: Option(bool, "Include a team captain role toggle?", required=False, default=True), incplayerrole: Option(bool, "Include a generic player role toggle?", required=False, default=True),
-                            incpingrole: Option(bool, "Include a team specific pingable role toggle?", required=False, default=False)):
-    view = discord.ui.View(timeout=None)
-    for i in range(6):
-        commandName = "Off by One Error"
-        if(inccaprole and i == 0):
-            commandName = "Captainize Me!"
-        elif(inccaprole and i == 1):
-            commandName = "Uncaptainize Me!"
-        elif(incplayerrole and i == 2):
-            commandName = "Add me as a player!"
-        elif(incplayerrole and i == 3):
-            commandName = "Remove me as a player!"
-        elif(incpingrole and i == 4):
-            commandName = "Add me to Team-Pings!"
-        elif(incpingrole and i == 5):
-            commandName = "Remove me from Team-Pings!"
-
-        if not(commandName == "Off by One Error"):
-            view.add_item(RoleButton(commandName, i+4))
-    if len(view.children) < 1:
-        await ctx.respond("Please make at least 1 option True.", ephemeral=True)
-    else:
-        await ctx.respond("Click a button below to edit your roles:", view=view)
-
-
-@admin.command(name="distribute_members_to_roles")
-async def addToRole(ctx: discord.ApplicationContext, roleone: Option(discord.Role, "The Role"), roletwo: Option(discord.Role, "The Role", required=False, default=None), rolethree: Option(discord.Role, "The Role", required=False, default=None),
-    rolefour: Option(discord.Role, "The Role", required=False, default=None), rolefive: Option(discord.Role, "The Role", required=False, default=None), rolesix: Option(discord.Role, "The Role", required=False, default=None)):
-    """Add all members to a set of roles"""
-    guild = ctx.guild
-    gmRole = get(guild.roles, id=GMRoles[guild.id])
-    if(not(gmRole in ctx.interaction.user.roles)):
-        await ctx.respond("You do not have permission to use this command.", ephemeral=True, delete_after=10)
-        return
-
-    roles = [roleone.id]
-    respondString = "Adding players to " + roleone.mention
-    if(roletwo):
-        roles.append(roletwo.id)
-        if(rolethree):
-            roles.append(rolethree.id)
-            if(rolefour):
-                roles.append(rolefour.id)
-                if(rolefive):
-                    roles.append(rolefive.id)
-                    if(rolesix):
-                        roles.append(rolesix.id)
-                        respondString = respondString + ", " + roletwo.mention + ", " + rolethree.mention + ", " + rolefour.mention + ", " + rolefive.mention + ", and" + rolesix.mention
-                    else:
-                        respondString = respondString + ", " + roletwo.mention + ", " + rolethree.mention + ", " + rolefour.mention + ", and " + rolefive.mention
-                else:
-                    respondString = respondString + ", " + roletwo.mention + ", " + rolethree.mention + ", and " + rolefour.mention
-            else:
-                respondString = respondString + ", " + roletwo.mention+ ", and " + rolethree.mention
-        else:
-            respondString = respondString + " and " + roletwo.mention
-
-    respondString = respondString + "."
-
-    await ctx.respond(respondString)
-    data = await pickleLoadMemberData(guild)
-
-    if len(data) < 1:
-        return None
-
-    memberList = await PCmembers(guild)
-
-    await pickleWrite(await assignRandomTeamsSpecific(memberList, guild, roles), guild)
-
-    respondString = "Added" + respondString[6:]
-    await ctx.edit(content=respondString)
-
-@misc.command(name="report_team_stats")
+@misc.command(name="report_team_stats", guild_ids=commPlaysIDs)
 async def reportStats(ctx: discord.ApplicationContext):
     """Later consider adding action tracking and other data"""
     guild = ctx.guild
@@ -1309,7 +1316,7 @@ async def reportStats(ctx: discord.ApplicationContext):
         for role in guild.roles:
             if role.name.startswith(teamRole.name) and role.name != teamRole.name:
                 teamRolesList[role.name] = len(role.members)
-        
+
         outString = outString + teamRole.name + " has " + str(teamTotals[team]) + " total members, "
 
         for role in teamRolesList:
@@ -1345,187 +1352,6 @@ def create_overwrites(guild, objects):
 
     return overwrites
 
-async def createTeamChannels(guild, teams, gamename, ignorePA=True):
-    teamCat = get(guild.channels, name="Team channels")
-    if(not(ignorePA)):
-        gamCat = get(guild.channels, name="Game Updates")
-    secCat = get(guild.channels, name="Secret conversations") or get(guild.channels, name="Team-to-Team Chats") 
-    if not(teamCat):
-        teamCat = await guild.create_category(name="Team channels")
-    if not(ignorePA) and not(gamCat):
-        gamCat = await guild.create_category(name="Game Updates")
-    if not(secCat):
-        secCat = await guild.create_category(name="Secret conversations")
-
-    for i in range(len(teams)):
-        tRole = get(guild.roles, id=teams[i])
-        if not(get(guild.channels, name=tRole.name)):
-            await guild.create_text_channel(name=tRole.name + "-" + gamename, category=teamCat, topic="easypoll", overwrites=create_overwrites(guild, [tRole]))
-            if(not(ignorePA)):
-                await guild.create_text_channel(name=tRole.name + "-play-area-" + gamename, category=gamCat, overwrites=create_overwrites(guild, []))
-            for y in range(i):
-                await guild.create_text_channel(name=tRole.name + "-" + get(guild.roles, id=teams[y]).name + "-" + gamename, category=secCat, overwrites=create_overwrites(guild, [tRole, get(guild.roles, id=teams[y])]))
-
-async def createSecretChannelsGivenTeams(guild, teams, gamename):
-    secCat = get(guild.channels, name="Secret conversations")
-    if not(secCat):
-        secCat = await guild.create_category(name="Secret conversations")
-
-    for t in range(len(teams)):
-        tRole = get(guild.roles, id=teams[t])
-        for y in range(t):
-            yRole = get(guild.roles, id=teams[y])
-            await guild.create_text_channel(name=tRole.name + "-" + yRole.name + "-" + gamename, category=secCat, overwrites=create_overwrites(guild, [tRole, yRole]))
-
-async def createPlayAreaChannelsGivenTeams(guild, teams, gamename):
-    gamCat = get(guild.channels, name="Game Updates")
-    if not(gamCat):
-        gamCat = await guild.create_category(name="Game Updates")
-
-    for t in range(len(teams)):
-        tRole = get(guild.roles, id=teams[t])
-        await guild.create_text_channel(name=tRole.name + "-play-area-" + gamename, category=gamCat, overwrites=create_overwrites(guild, []))
-
-async def updateTeamChannels(guild, oldToNewTeamList):
-    teamCat = get(guild.channels, name="Team channels")
-    gamCat = get(guild.channels, name="Game Updates")
-    secCat = get(guild.channels, name="Secret conversations")
-    if not(teamCat):
-        teamCat = await guild.create_category(name="Team channels")
-    if not(gamCat):
-        gamCat = await guild.create_category(name="Game Updates")
-    if not(secCat):
-        secCat = await guild.create_category(name="Secret conversations")
-
-    for oldTeam in oldToNewTeamList:
-        newTeam = oldToNewTeamList[oldTeam]
-        teamRole = get(guild.roles, name=oldTeam)
-        await teamRole.edit(name=newTeam)
-        for channel in filter(lambda ch: oldTeam.lower().replace(" ","-") in ch.name.lower(), guild.channels):
-            newCHName = channel.name.replace(oldTeam.lower().replace(" ","-"), newTeam.lower().replace(" ", "-"))
-            await channel.edit(name=newCHName)
-
-@frog.command(name="join_archivists")
-async def joinArchivists(ctx: discord.ApplicationContext):
-    team = readTeamData("BRMAP")["Archivists"]
-    memberList = team['team']
-    if not(ctx.user.id in memberList):
-        memberList.append(ctx.user.id)
-    team['team'] = memberList
-    writeTeamData(team)
-
-    gameChannel = get(ctx.guild.channels, id=1120446274009837719)
-    discussionChannel = get(ctx.guild.channels, id=1133915503539277905)
-    handChannel = get(ctx.guild.channels, id=1136464168258650182)
-    strategyChannel = get(ctx.guild.channels, id=1139379580570959933)
-
-    await syncTeamThreads(ctx, "BRMAP", "Archivists", gameChannel)
-    await syncTeamThreads(ctx, "BRMAP", "Archivists", discussionChannel)
-    await syncTeamThreads(ctx, "BRMAP", "Archivists", handChannel)
-    await syncTeamThreads(ctx, "BRMAP", "Archivists", gameChannel)
-
-@admin.command(name="archive_category_threads")
-async def archiveCategoryThreads(ctx: discord.ApplicationContext, categorychannel: Option(discord.CategoryChannel, "Category to be archived.")):
-    await ctx.defer(ephemeral=True)
-    thrCount = 0
-    catName = categorychannel.name
-    for channel in categorychannel.channels:
-        try:
-            for thread in channel.threads:
-                if "g10" in thread.name or "hand" in thread.name:
-                    continue
-                thrCount = thrCount + 1
-                await thread.edit(locked=True, invitable=True)
-                pingMessageList = await generatePingMessage(ctx, "BRMAP", "everyone", True)
-                for message in pingMessageList:
-                    await thread.send(message)
-                await asyncio.sleep(1000)
-        except Exception as e:
-            print(e)
-    await ctx.send_followup(content=f"{thrCount} threads archived in {catName}.", ephemeral=True)
-
-@admin.command(name="sync_players_threads")
-async def syncTeamThread(ctx: discord.ApplicationContext, channel: Option(discord.TextChannel, "Channel containing threads."), adduser0: Option(discord.User, "User to look for in threads."), adduser1: Option(discord.User, "User to add to threads."), adduser2: Option(discord.User, "User to add to threads.", required=False), adduser3: Option(discord.User, "User to add to threads.", required=False), adduser4: Option(discord.User, "User to add to threads.", required=False)):
-    await ctx.defer(ephemeral=True)
-    userList = [adduser0, adduser1]
-    if adduser2:
-        userList.append(adduser2)
-    if adduser3:
-        userList.append(adduser3)
-    if adduser4:
-        userList.append(adduser4)
-    uListIDs = []
-    for u in userList:
-        uListIDs.append(u.id)
-
-    threads = channel.threads
-    cthr = 0
-    for thread in threads:
-        mIDs = []
-        tmem = await thread.fetch_members()
-        for m in tmem:
-            mIDs.append(m.id)
-            
-        if(set(uListIDs).intersection(mIDs)):
-            cthr = cthr + 1
-            for u in userList:
-                if not(u.id in mIDs):
-                    await thread.add_user(u)
-
-    await ctx.send_followup(content="Users added to " + str(cthr) + " threads.", ephemeral=True)
-
-@admin.command(name="setup_teams")
-async def setupTeams(ctx: discord.ApplicationContext, gamename: Option(str, "GameName"), inclplayareas: Option(bool, "Include Play Areas?")):
-    """Creates everthing needed for a new game"""
-    print("Setting up a new game")
-    guild = ctx.guild
-    teamList = roleListByGuild[guild.id]
-    await ctx.respond(content="Processing ... ")
-    await createTeamChannels(guild, teamList, gamename, inclplayareas)
-    await simpleClearAllTeams(guild)
-    await simpleAssignTeams(guild)
-    await ctx.respond(content="Teams are Setup :)")
-
-@admin.command(name="add_secret_chats")
-async def addSecretChats(ctx: discord.ApplicationContext, gamename: Option(str, "GameName"), team1: Option(discord.Role, "Team 1"), team2: Option(discord.Role, "Team 2"),
-    team3: Option(discord.Role, "Team 3", required=False), team4: Option(discord.Role, "Team 4", required=False), team5: Option(discord.Role, "Team 5", required=False), 
-    team6: Option(discord.Role, "Team 6", required=False), team7: Option(discord.Role, "Team 7", required=False), team8: Option(discord.Role, "Team 8", required=False)):
-    """Creates secret chats for a new game"""
-    print("Setting secret chats")
-    guild = ctx.guild
-
-    teamList = []
-    teamList.append(team1.id)
-    teamList.append(team2.id)
-    if(team3): teamList.append(team3.id)
-    if(team4): teamList.append(team4.id)
-    if(team5): teamList.append(team5.id)
-    if(team6): teamList.append(team6.id)
-    if(team7): teamList.append(team7.id)
-    if(team8): teamList.append(team8.id)
-
-    await createSecretChannelsGivenTeams(guild, teamList, gamename)
-
-@admin.command(name="add_play_areas")
-async def addSecretAreas(ctx: discord.ApplicationContext, gamename: Option(str, "GameName"), team1: Option(discord.Role, "Team 1"), team2: Option(discord.Role, "Team 2"),
-    team3: Option(discord.Role, "Team 3", required=False), team4: Option(discord.Role, "Team 4", required=False), team5: Option(discord.Role, "Team 5", required=False), 
-    team6: Option(discord.Role, "Team 6", required=False), team7: Option(discord.Role, "Team 7", required=False), team8: Option(discord.Role, "Team 8", required=False)):
-    """Creates play areas for a new game"""
-    print("Setting play areas")
-    guild = ctx.guild
-
-    teamList = []
-    teamList.append(team1.id)
-    teamList.append(team2.id)
-    if(team3): teamList.append(team3.id)
-    if(team4): teamList.append(team4.id)
-    if(team5): teamList.append(team5.id)
-    if(team6): teamList.append(team6.id)
-    if(team7): teamList.append(team7.id)
-    if(team8): teamList.append(team8.id)
-
-    await createPlayAreaChannelsGivenTeams(guild, teamList, gamename)
-
 @admin.command(name="rename_team")
 async def renameTeams(ctx: discord.ApplicationContext, role: Option(discord.Role, "Role to change"), newname: Option(str, "New name for role")):
     """Renames all channeles with Role in name, also renames Role"""
@@ -1535,19 +1361,19 @@ async def renameTeams(ctx: discord.ApplicationContext, role: Option(discord.Role
     await ctx.respond(content="Teams are Setup :)")
 
 factions = [
-    "Arborec", "Argent", "Barony", "Cabal",
-    "Empyrean", "Ghosts", "Hacan", "Jol-Nar", 
-    "Keleres [Argent]", "Keleres [Mentak]", "Keleres [Xxcha]",
-    "L1Z1X", "Mahact", "Mentak", "Muaat",
-    "Naalu", "Naaz-Rokha", "Nekro", "Nomad",
-    "Saar", "Sardakk", "Sol", "Titans",
-    "Winnu", "Xxcha", "Yin", "Yssaril",
-]
+        "Arborec", "Argent", "Barony", "Cabal",
+        "Empyrean", "Ghosts", "Hacan", "Jol-Nar", 
+        "Keleres [Argent]", "Keleres [Mentak]", "Keleres [Xxcha]",
+        "L1Z1X", "Mahact", "Mentak", "Muaat",
+        "Naalu", "Naaz-Rokha", "Nekro", "Nomad",
+        "Saar", "Sardakk", "Sol", "Titans",
+        "Winnu", "Xxcha", "Yin", "Yssaril",
+        ]
 
 @admin.command(name="toggle_map_ban")
 async def banMap(ctx: discord.ApplicationContext, mapname: Option(str, "Map name to be restricted.")):
     """Bans/Unbans a specific map name from the /misc map function."""
-    
+
     adm = adminObj()
 
     adminDict = await pickleLoadMemberData(adm)
@@ -1570,7 +1396,7 @@ async def banMap(ctx: discord.ApplicationContext, mapname: Option(str, "Map name
 
 @arcs.command(name="roll")
 async def rollArcsDice(ctx: discord.ApplicationContext, numskirmish: Option(int, "Number of skirmish dice to roll.", required=False, default=0, max_value=6, min_value=0), numassault: Option(int, "Number of assault dice to roll.", required=False, default=0, max_value=6, min_value=0), numraid: Option(int, "Number of raid dice to roll.", required=False, default=0, max_value=6, min_value=0),
-    numnumber: Option(int, "Number of number dice to roll.", required=False, default=0, max_value=1, min_value=0), numevent: Option(int, "Number of event dice to roll.", required=False, default=0, max_value=1, min_value=0)):
+                       numnumber: Option(int, "Number of number dice to roll.", required=False, default=0, max_value=1, min_value=0), numevent: Option(int, "Number of event dice to roll.", required=False, default=0, max_value=1, min_value=0)):
     """Rolls Arcs Dice with fun animation"""
     if(numskirmish + numassault + numraid + numevent + numnumber == 0):
         await ctx.respond("That isn't any dice!")
@@ -1584,10 +1410,10 @@ async def rollArcsDice(ctx: discord.ApplicationContext, numskirmish: Option(int,
     numberEmoji     = get(emojiList, id = emojiID["NumberDie"])
     eventEmoji      = get(emojiList, id = emojiID["EventDie"])
     RollingMessage += (("<a:" + skirmishEmoji.name + ":" + str(skirmishEmoji.id) + ">")*numskirmish + "\n"*(numskirmish>0) +
-                    ("<a:" + assaultEmoji.name + ":" + str(assaultEmoji.id) + ">")*numassault + "\n"*(numassault>0) +
-                    ("<a:" + raidEmoji.name + ":" + str(raidEmoji.id) + ">")*numraid + "\n"*(numraid>0) +
-                    ("<:" + numberEmoji.name + ":" + str(numberEmoji.id) + ">")*numnumber + "\n"*(numnumber>0) +
-                    ("<:" + eventEmoji.name + ":" + str(eventEmoji.id) + ">")*numevent + "\n"*(numevent>0))
+                       ("<a:" + assaultEmoji.name + ":" + str(assaultEmoji.id) + ">")*numassault + "\n"*(numassault>0) +
+                       ("<a:" + raidEmoji.name + ":" + str(raidEmoji.id) + ">")*numraid + "\n"*(numraid>0) +
+                       ("<:" + numberEmoji.name + ":" + str(numberEmoji.id) + ">")*numnumber + "\n"*(numnumber>0) +
+                       ("<:" + eventEmoji.name + ":" + str(eventEmoji.id) + ">")*numevent + "\n"*(numevent>0))
 
     message = await ctx.respond(RollingMessage) 
     await asyncio.sleep(3)
@@ -1647,67 +1473,67 @@ async def rollArcsDice(ctx: discord.ApplicationContext, numskirmish: Option(int,
     await ctx.edit(content=resultMessage)
 
 actionCardList = [
-    "agression",
-    "mobilization",
-    "administration",
-    "construction",
-    "event",
-    "faithful_zeal",
-    "faithful_wisdom",
-]
+        "agression",
+        "mobilization",
+        "administration",
+        "construction",
+        "event",
+        "faithful_zeal",
+        "faithful_wisdom",
+        ]
 
 actionCardRanges = {
-    "agression" : [1,7],
-    "mobilization" : [1,7],
-    "administration" : [1,7],
-    "construction" : [1,7],
-    "event" : [1,3],
-    "faithful_zeal" : [1,9],
-    "faithful_wisdom" : [1,9],
-}
+        "agression" : [1,7],
+        "mobilization" : [1,7],
+        "administration" : [1,7],
+        "construction" : [1,7],
+        "event" : [1,3],
+        "faithful_zeal" : [1,9],
+        "faithful_wisdom" : [1,9],
+        }
 
 @arcs.command(name="action_card")
 async def showActionCard(ctx: discord.ApplicationContext, actioncardname: Option(str, "Name of the action card to summon.", required=True, choices=actionCardList), actioncardnumber: Option(int, "Number of the action card to summon.", required=True, min_value=1, max_value=9)):
     if actioncardnumber < actionCardRanges[actioncardname][0] or actioncardnumber > actionCardRanges[actioncardname][1]:
         await ctx.respond("Sorry, the " + str(actioncardnumber) + " of " + actioncardname + " is not a real card dude :I")
-    
+
     actionCard = discord.File("./assets/arcs/Individual Action/" + actioncardname + "_" + str(actioncardnumber) + ".jpg", filename = actioncardname + "_" + str(actioncardnumber) + ".jpg", description = "The " + str(actioncardnumber) + " of " + actioncardname + ".")
 
     await ctx.respond(content="Woah look at this cool action card:", file=actionCard)
 
 courtCardList = [
-    "admin_union",
-    "arms_union",
-    "call_to_action",
-    "construction_union",
-    "court_enforcers",
-    "elder_broker",
-    "farseers",
-    "fuel_cartel",
-    "galactic_bards",
-    "gatekeepers",
-    "guild_struggle",
-    "lattice_spies",
-    "loyal_empaths",
-    "loyal_engineers",
-    "loyal_keepers",
-    "loyal_marines",
-    "loyal_pilots",
-    "mass_uprising",
-    "material_cartel",
-    "mining_interest",
-    "outrage_spreads",
-    "populist_demands",
-    "prison_wardens",
-    "relic_fence",
-    "secret_order",
-    "shipping_interest",
-    "silver_tongues",
-    "skirmishers",
-    "song_of_freedom",
-    "spacing_union",
-    "sworn_guardians",
-]
+        "admin_union",
+        "arms_union",
+        "call_to_action",
+        "construction_union",
+        "court_enforcers",
+        "elder_broker",
+        "farseers",
+        "fuel_cartel",
+        "galactic_bards",
+        "gatekeepers",
+        "guild_struggle",
+        "lattice_spies",
+        "loyal_empaths",
+        "loyal_engineers",
+        "loyal_keepers",
+        "loyal_marines",
+        "loyal_pilots",
+        "mass_uprising",
+        "material_cartel",
+        "mining_interest",
+        "outrage_spreads",
+        "populist_demands",
+        "prison_wardens",
+        "relic_fence",
+        "secret_order",
+        "shipping_interest",
+        "silver_tongues",
+        "skirmishers",
+        "song_of_freedom",
+        "spacing_union",
+        "sworn_guardians",
+        ]
 
 async def courtAutocomplete(ctx: discord.AutocompleteContext):
     cards = [card for card in courtCardList if card.startswith(ctx.value.lower())]
@@ -1719,7 +1545,7 @@ async def showCourtCard(ctx: discord.ApplicationContext, courtcardname: Option(s
 
     await ctx.respond(content="Woah look at this cool court card:", file=courtCard)
 
-@misc.command(name="map")
+@misc.command(name="map", guild_ids=commPlaysIDs)
 async def showMap(ctx: discord.ApplicationContext, mapstring: Option(str, "The Map String"), name: Option(str, "The Map's Name", required=False, default="tempMap"), forceregen: Option(bool, "Force Froggy to regenerate the map.", required=False, default=False), inclspikes: Option(bool, "Include Mallice and Creuss", required=False, default=False)):
     """Generates a map image from a string of numbers"""
     guild = ctx.guild
@@ -1744,6 +1570,22 @@ async def showMap(ctx: discord.ApplicationContext, mapstring: Option(str, "The M
 
     await ctx.respond(content = "Here is your map:", file=mapFile)
 
+@misc.command(name="listrole")
+async def listRole(ctx: discord.ApplicationContext, role: discord.Role):
+    outstr = ""
+
+    for member in role.members:
+        if(member.nick):
+            outstr = outstr + member.nick + " (" + member.name + ")\n"
+        else:
+            outstr = outstr + member.name + "\n"
+
+
+    outstr = outstr[:-1]
+    fileOut = discord.File(io.StringIO(outstr), filename="roleList.txt", description="A list of users in " + role.name + ".")
+
+    await ctx.respond(content = "Here is the list of members in " + role.name, file=fileOut)
+
 @bot.message_command(name="pin_message")
 async def toggleMessagePin(ctx: discord.ApplicationContext, message: discord.Message):
     status = message.pinned
@@ -1756,6 +1598,60 @@ async def toggleMessagePin(ctx: discord.ApplicationContext, message: discord.Mes
         outMessage = "Message pinned."
 
     await ctx.respond(content = outMessage, ephemeral = True, delete_after = 60)
+
+class messageModal(Modal):
+    def __init__(self, *args, **kwargs) -> None:
+        self.reservations = {}
+
+        super().__init__(*args, **kwargs)
+                
+        self.add_item(InputText(label="What should the message be?", style=discord.InputTextStyle.long))
+
+    def setReservedValues(self, ReservedDict):
+        self.reservations = ReservedDict
+
+    async def callback(self, interaction: discord.Interaction):
+        replyTo = self.reservations["reply"]
+        print(replyTo)
+        if(replyTo):
+            await replyTo.reply(content=self.children[0].value)
+            await interaction.respond(content = "Sent reply.", ephemeral=True, delete_after=5)
+        else:
+            await interaction.respond(content = "No message found.", ephemeral=True, delete_after=20)
+
+@bot.message_command(name="reply")
+async def replyAsFroggy(ctx: discord.ApplicationContext, message: discord.Message):
+    guild = ctx.guild
+    adminID = GMRoles[guild.id]
+    userAdmin = get(ctx.author.roles, id=adminID)
+    if(not(userAdmin)):
+        ctx.respond(content = "You do not have permission to use this command.", ephemeral=True, delete_after=10)
+        return;
+
+    mModal = messageModal(title="Reply message")
+    mModal.setReservedValues({'reply': message})
+    await ctx.send_modal(mModal)
+
+
+@bot.message_command(name="add_poll_to_role")
+async def addPollUsers(ctx: discord.ApplicationContext, message: discord.Message):
+    poll = message.poll
+    guild = ctx.guild
+    gameRole = get(guild.roles, id=1441493469968470176)
+    voters = []
+
+    await ctx.respond(content = "Adding users from this poll to the player role. . .")
+
+    for answer in poll.answers:
+        voters.extend(await answer.voters().flatten())
+        
+    voters = list(set(voters))
+
+    for user in voters:
+        if not(user in gameRole.members):
+            await user.add_roles(gameRole)
+
+    await ctx.edit(content = "Finished adding users from this poll to the player role.")
 
 class genDropdown(discord.ui.Select):
     def __init__(self, name, options):
@@ -1775,34 +1671,34 @@ class genDropdown(discord.ui.Select):
 
 
 hsIDFromFaction = {
-    "Arborec" : "5", 
-    "Argent" : "58", 
-    "Barony" : "10", 
-    "Cabal" : "54",
-    "Empyrean" : "56", 
-    "Ghosts" : "17", 
-    "Hacan" : "16", 
-    "Jol-Nar" : "12", 
-    "Keleres [Argent]" : "58k", 
-    "Keleres [Mentak]" : "2k", 
-    "Keleres [Xxcha]" : "14k",
-    "L1Z1X" : "6", 
-    "Mahact" : "52", 
-    "Mentak" : "2",
-    "Muaat" : "4",
-    "Naalu" : "9", 
-    "Naaz-Rokha" : "57", 
-    "Nekro" : "8", 
-    "Nomad" : "53",
-    "Saar" : "11", 
-    "Sardakk" : "13", 
-    "Sol" : "1", 
-    "Titans" : "55",
-    "Winnu" : "7", 
-    "Xxcha" : "14", 
-    "Yin" : "3", 
-    "Yssaril" : "15",
-}
+        "Arborec" : "5", 
+        "Argent" : "58", 
+        "Barony" : "10", 
+        "Cabal" : "54",
+        "Empyrean" : "56", 
+        "Ghosts" : "17", 
+        "Hacan" : "16", 
+        "Jol-Nar" : "12", 
+        "Keleres [Argent]" : "58k", 
+        "Keleres [Mentak]" : "2k", 
+        "Keleres [Xxcha]" : "14k",
+        "L1Z1X" : "6", 
+        "Mahact" : "52", 
+        "Mentak" : "2",
+        "Muaat" : "4",
+        "Naalu" : "9", 
+        "Naaz-Rokha" : "57", 
+        "Nekro" : "8", 
+        "Nomad" : "53",
+        "Saar" : "11", 
+        "Sardakk" : "13", 
+        "Sol" : "1", 
+        "Titans" : "55",
+        "Winnu" : "7", 
+        "Xxcha" : "14", 
+        "Yin" : "3", 
+        "Yssaril" : "15",
+        }
 
 @frog.command(name="initfroggame")
 async def inFrog(ctx: discord.ApplicationContext, gamename: Option(str, "Name of the game."), mapstring: Option(str, "The Map String")):
@@ -1817,7 +1713,7 @@ async def inFrog(ctx: discord.ApplicationContext, gamename: Option(str, "Name of
             factionlist.append(list(hsIDFromFaction.keys())[list(hsIDFromFaction.values()).index(mapObj[sys])])
 
     print("Factions defined")
-    
+
     gameFrog = await testDarkMap(mapObj, factionlist, gamename)
 
     print("Frog instantiated")
@@ -1959,7 +1855,7 @@ async def initEmptyGame(ctx: discord.ApplicationContext, gamename: Option(str, "
         teams.append(t)
 
     print("Empty factions defined")
-    
+
     gameFrog = initGameMap(gamename, mapObj, teams)
     gameFrog.initEmpty()
 
@@ -2205,7 +2101,7 @@ async def syncTeamThreads(ctx: discord.ApplicationContext, gamename: Option(str,
         tmem = await thread.fetch_members()
         for m in tmem:
             mIDs.append(m.id)
-            
+
         if(set(memberList).intersection(mIDs)):
             cthr = cthr + 1
             for u in memberListUsers:
@@ -2222,7 +2118,7 @@ async def syncTeamThreads(ctx: discord.ApplicationContext, gamename: Option(str,
         tmem = await thread.fetch_members()
         for m in tmem:
             mIDs.append(m.id)
-            
+
         if(set(memberList).intersection(mIDs)):
             cthr = cthr + 1
             for u in memberListUsers:
@@ -2252,7 +2148,7 @@ async def removeTeamThreads(ctx: discord.ApplicationContext, gamename: Option(st
     tmem = await thread.fetch_members()
     for m in tmem:
         mIDs.append(m.id)
-        
+
     if(set(memberList).intersection(mIDs)):
         for u in memberListUsers:
             if (u.id in mIDs):
@@ -2262,26 +2158,44 @@ async def removeTeamThreads(ctx: discord.ApplicationContext, gamename: Option(st
 
     await ctx.send_followup(content="Finished removing " + team['teamname'] + " from this thread. :)")
 
+@admin.command(name="reset_ban_phrase_dict")
+async def resetBanPhraseGuild(ctx: discord.ApplicationContext):
+    await writeBannedPhrases(ctx.guild, {})
+    await ctx.respond("Reset banned phrase list in this guild.")
 
-@admin.command(name="toggle_thread_sync")
-async def banThreadFromSync(ctx: discord.ApplicationContext, threadid: Option(str, "The id of the thread.")):
-    bannedThreads = await loadBannedThreads(ctx.guild)
-    thread = get(ctx.guild.threads, id=int(threadid))
+@admin.command(name="report_banned_phrases")
+async def reportBanPhraseGuild(ctx: discord.ApplicationContext):
+    bannedPhrases = await loadBannedPhrases(ctx.guild)
+    outmsg = ""
+    for key in bannedPhrases.keys():
+        needLink = bannedPhrases[key]
+        if needLink:
+            outmsg += "* " + key + " as a part of a link.\n"
+        else:
+            outmsg += "* " + key + " as a part of any message.\n"
+    await ctx.respond("The following phrases are banned in this guild:\n" + outmsg)
+
+@admin.command(name="ban_phrase_from_messages")
+async def banPhraseFromGuild(ctx: discord.ApplicationContext, phrase: Option(str, "The phrase to be restricted from new messages."), link: Option(bool, "Only restrict phrase if part of a link?", required=False, default=False)):
+    bannedPhrases = await loadBannedPhrases(ctx.guild)
     tFlag = False
-    if not(thread.id in bannedThreads):
-        bannedThreads.append(thread.id)
+    if not(phrase.lower() in bannedPhrases.keys()):
+        bannedPhrases[phrase.lower()] = link
         tFlag = True
-    elif thread.id in bannedThreads:
-        bannedThreads.remove(thread.id)
+    elif thread.id in bannedPhrases:
+        try:
+            del bannedPhrases[phrase.lower()]
+        except:
+            pass
         tFlag = False
 
-    await writeBannedThreads(ctx.guild, bannedThreads)
+    await writeBannedPhrases(ctx.guild, bannedPhrases)
     omsg=""
     if(tFlag):
         omsg = " added to "
     else:
         omsg = " removed from "
-    await ctx.respond(content = thread.name + omsg + "the banned threads list.")
+    await ctx.respond(content = phrase + omsg + "the banned phrases list.")
 
 class systemFleetPrompt(Modal):
     def __init__(self, *args, **kwargs) -> None:
@@ -2438,104 +2352,6 @@ async def delFrog(ctx: discord.ApplicationContext):
     clearMapDataPickle()
 
 #--------------------------------------------------------------------------------#
-#----------------------------------POLL STUFF------------------------------------#
-
-
-@misc.command(name="faction_poll")
-async def dropdownPoll(ctx: discord.ApplicationContext, factionlist: Option(str, "List of emoji for factions in poll", required=False), publicanswers: Option(bool, "Should results be viewable during the poll?", required=False, default=False)):
-    """Creates a poll with specific factions as options"""
-    fl = factions
-    if factionlist:
-        fl=[]
-        flip = False
-        for f in factionlist.split(":"):
-            if flip:
-                fl.append(f)
-            flip = not(flip)
-    vw = factionDecisionRequest(ctx.guild, fl)
-    interaction = await ctx.respond(content = "** Chose a faction: **", view=vw)
-    message = await interaction.original_response()
-    await message.edit(content = "** Chose a faction: **" + "\n" + "*Poll ID: " + str(message.id) + "*")
-    poll = memPoll(message.id, publicanswers)
-    await registerPoll(poll)
-
-@misc.command(name="poll_general")
-async def dropdownPollG(ctx: discord.ApplicationContext, title: Option(str, "Poll title/question."), optionlist: Option(str, "List poll options separated by \";\""), publicanswers: Option(bool, "Should results be viewable during the poll?", required=False, default=False)):
-    """Creates a poll with any name and options."""
-    options = optionlist.split(';')
-    options = list(dict.fromkeys(list(filter(lambda item: item != "", options))))
-    vw = decisionRequest(options)
-    interaction = await ctx.respond(content = "** " + title + " **", view=vw)
-    message = await interaction.original_response()
-    await message.edit(content = "** " + title + " **" + "\n" + "*Poll ID: " + str(message.id) + "*")
-    poll = memPoll(message.id, publicanswers)
-    await registerPoll(poll)
-
-@misc.command(name="role_poll")
-async def rolePoll(ctx: discord.ApplicationContext, title: Option(str, "Poll title/question."), rolenames: Option(str, "What roles to include, must be the starting characters of the role name. Split by \";\""), publicanswers: Option(bool, "Should results be viewable during the poll?", required=False, default=False)):
-    guild = ctx.guild
-    options = rolenames.split(';')
-    options = list(dict.fromkeys(list(filter(lambda item: item != "", options))))
-    roleList = []
-    for role in guild.roles:
-        for opt in options:
-            if role.name.lower().startswith(opt):
-                roleList.append(role.id)
-
-    if(len(roleList) < 1):
-        interaction = await ctx.respond(content = "An error occured trying to make this poll.", ephemeral=True, delete_after=20)
-    else:
-        vw = decisionRoleRequest(roleList, guild)
-        interaction = await ctx.respond(content = "** " + title + " **", view=vw)
-        message = await interaction.original_response()
-        await message.edit(content = "** " + title + " **" + "\n" + "*Poll ID: " + str(message.id) + "*")
-        poll = memPoll(message.id, publicanswers)
-        await registerPoll(poll)
-
-@misc.command(name="clearvotes")
-async def clearVoteFile(ctx: discord.ApplicationContext):
-    """Clears all votes saved."""
-    await clearVotes()
-    await ctx.respond(content = "Vote savefile cleared.", delete_after=10)
-
-@bot.message_command(name="Close Poll")
-async def closeFacPoll(ctx, message: discord.Message):
-    """Ends a poll and displays the results."""
-    guild = ctx.guild
-    if message.author.id == bot.user.id and len(message.components) == 2 and message.components[1].children[0].label == "Vote":
-        pollID = message.id
-        out = await genVoteResults(pollID, guild)
-        await clearPollVotes(pollID)
-        await message.edit(content=message.content.split("\n")[0]+"\n\nThe results of this vote:\n" + out, view=None)
-        await ctx.respond(content=message.content.split("\n")[0]+"\n\nThe results of this vote:\n" + out)
-    else:
-        await ctx.respond(content="This message is not a poll.", delete_after=5)
-
-@misc.command(name="end_poll")
-async def endPoll(ctx: discord.ApplicationContext, messageid: Option(str, "The id of the poll to close, can be found by right clicking the poll message.")):
-    """Ends a poll and displays the results."""
-    message = await ctx.channel.fetch_message(messageid)
-    if message.author.id == bot.user.id and len(message.components) == 2 and message.components[1].children[0].label == "Vote":
-        pollID = message.id
-        out = await genVoteResults(pollID, ctx.guild)
-        await clearPollVotes(pollID)
-        await message.edit(content=message.content.split("\n")[0]+"\n\nThe results of this vote:\n" + out, view=None)
-        await ctx.respond(content=message.content.split("\n")[0]+"\n\nThe results of this vote:\n" + out)
-    else:
-        await ctx.respond(content="This message is not a poll.", delete_after=5)
-
-async def circularizePic(pic):
-    oPic = pic
-    shape = pic.shape
-    center = (int(shape[0]/2), int(shape[1]/2))
-    for y in range(shape[0]):
-        for x in range(shape[1]):
-            if pow((x-center[1]),2)+pow(y-center[0],2) > pow(min(center),2):
-                oPic[y][x] = [0,0,0,0]
-
-    return oPic
-
-#--------------------------------------------------------------------------------#
 #-------------------------------USER PIC STUFF-----------------------------------#
 
 async def getUserPic(user):
@@ -2643,7 +2459,95 @@ async def genUserGraphGif(ctx, uAct, oldHour, newHour, height=600, width=600, sk
     subprocess.call(['ffmpeg', '-y', '-i', filename, '-i', 'palette.png', '-filter_complex', 'paletteuse', fileoutname])
     return [fileoutname, gif]
 
-@misc.command(name="usergraph", description="Graphs user actrivity in a channel over time. Froggy will halt during this process.")
+@misc.command(name="activitystats", description="Stats of channel activity over time. Froggy will halt during this process.", guild_ids=commPlaysIDs)
+async def chnlstats(ctx: discord.ApplicationContext, sel1: Option(Union[discord.TextChannel, discord.Thread], required=False, description="A channel to plot."), sel2: Option(Union[discord.TextChannel, discord.Thread], required=False, description="A channel to plot."), 
+                    sel3: Option(Union[discord.TextChannel, discord.Thread], required=False, description="A channel to plot."), sel4: Option(Union[discord.TextChannel, discord.Thread], required=False, description="A channel to plot."), 
+                    sel5: Option(Union[discord.TextChannel, discord.Thread], required=False, description="A channel to plot."), sel6: Option(Union[discord.TextChannel, discord.Thread], required=False, description="A channel to plot.")):
+    channelList = []
+    if sel1:
+        channelList.append(sel1)
+    if sel2:
+        channelList.append(sel2)
+    if sel3:
+        channelList.append(sel3)
+    if sel4:
+        channelList.append(sel4)
+    if sel5:
+        channelList.append(sel5)
+    if sel6:
+        channelList.append(sel6)
+
+    coolGuy = ctx.author
+    await ctx.defer()
+
+    stats = {}
+    baseStats = {
+            "Total Users (sent at least 1 message)" : "0",
+            "Active Users" : "0",
+            "Total Messages" : "0",
+            "Average Messages / Day" : "0",
+            "Average User Activity" : "0",
+            "Best User" : "No one somehow",
+            "Coolness Factor": "0",
+            }
+    for channel in channelList:
+        print(channel.name)
+        memList = {}
+        msgCount = 0
+        coolFactor = 0
+        lastMessage = await channel.fetch_message(channel.last_message_id)
+        firstMessage = None
+        async for msg in channel.history(limit=None):
+            await asyncio.sleep(0)
+            if (msg.author == coolGuy):
+                coolFactor = coolFactor + 1
+            firstMessage = msg
+            if not(msg.author in memList.keys()):
+                memList[msg.author] = 1
+            else:
+                memList[msg.author] = memList[msg.author] + 1
+            msgCount = msgCount+1
+        channelStats = baseStats.copy()
+        channelStats["Total Messages"] = "%d"%msgCount
+        start = firstMessage.created_at
+        end = lastMessage.created_at
+        delta = end-start
+        days = delta.days + 1
+        if(days == 0):
+            channelStats["Average Messages / Day"] = "ERROR"
+        else:
+            channelStats["Average Messages / Day"] = "{:.2f}".format(float(msgCount) / days)
+        channelStats["Total Users (sent at least 1 message)"] = "%d"%len(memList)
+        userActivity = 0
+        for val in memList.values():
+            userActivity = userActivity + val
+        userActivity = userActivity / len(memList)
+        channelStats["Average User Activity"] = "%0.2f"%userActivity
+        activeUsers = []
+        bestUser = None
+        for member in memList.keys():
+            if memList[member] > userActivity:
+                activeUsers.append(memList[member])
+            if bestUser:
+                if memList[member] > memList[bestUser]:
+                    bestUser = member
+            else:
+                bestUser = member
+        channelStats["Active Users"] = "%d"%len(activeUsers)
+        channelStats["Best User"] = bestUser.name
+        channelStats["Coolness Factor"] = "%d"%coolFactor
+        stats[channel.name] = channelStats.copy()
+
+    embedList = []
+    for channel in stats.keys():
+        channelEmbed = discord.Embed(title=channel)
+        for stat in stats[channel].keys():
+            channelEmbed.add_field(name=stat, value=stats[channel][stat])
+        embedList.append(channelEmbed)
+
+    await ctx.respond(content = "Here's some cool stats:",embeds = embedList)
+
+@misc.command(name="usergraph", description="Graphs user actrivity in a channel over time. Froggy will halt during this process.", guild_ids=commPlaysIDs)
 async def usergraphsh(ctx: discord.ApplicationContext, sel: Option(discord.TextChannel, required=False, description="The channel to plot."), duration: Option(float, required=False, default=7.0, description="Number of days to look back for messages, can be fractional."), timdiv: Option(float, required=False, default=1, description="Hours per frame"), skipblanks: Option(bool, required=False, default=False, description="Skip time divisions where there is no change.")):
     if duration == -1:
         duration = 14.0
@@ -2672,33 +2576,8 @@ async def usergraphsh(ctx: discord.ApplicationContext, sel: Option(discord.TextC
     emb = discord.Embed(color=discord.Color.gold())
     emb.add_field(name="Processing...", value=progress_bar(progress=0, value=0, size=30))
     await ctx.respond(content="Generating User Activity Graph", embed=emb)
-
-    print("process started")
-
-    userActivity = {}
-    inc = 0
-    async for msg in channel.history(after=targetDateTime, limit=limit):
-        if(inc % 10 == 0):
-            print(inc)
-        inc = inc + 1
-        timestep = int(msg.created_at.timestamp() / (3600*timdiv))
-        user = msg.author
-        if timestep in userActivity.keys():
-            if not(user in userActivity[timestep]):
-                userActivity[timestep].append(user)
-        else:
-            userActivity[timestep] = [user]
-
-    newest = max(userActivity)
-    oldest = min(userActivity)
-
-    print("Total number of time steps between oldest and newest recorded post:")
-    print(newest - oldest)
-
-    if(newest - oldest > 300):
-        emb = discord.Embed(color=discord.Color.gold())
-        emb.add_field(name="This operation will last longer than this message can be edited.", value="```ANSI\n" + genANSICOLORCODE(textColor = ANSICOLORCODES["TEXT"]["YELLOW"], bkgColor = ANSICOLORCODES["RESET"]) + "|" + genANSICOLORCODE(form = ANSICOLORCODES["RESET"]) + genANSICOLORCODE(textColor = ANSICOLORCODES["TEXT"]["RED"],bkgColor = ANSICOLORCODES["BACKGROUND"]["DARKGREY"]) + "??????????????????????????????" + genANSICOLORCODE(textColor = ANSICOLORCODES["TEXT"]["YELLOW"], bkgColor = ANSICOLORCODES["RESET"]) + "|" + genANSICOLORCODE(form = ANSICOLORCODES["RESET"]) +"\n```")
-        await ctx.edit(content="Generating User Activity Graph", embed=emb)
+    emb.add_field(name="This operation will last longer than this message can be edited.", value="```ANSI\n" + genANSICOLORCODE(textColor = ANSICOLORCODES["TEXT"]["YELLOW"], bkgColor = ANSICOLORCODES["RESET"]) + "|" + genANSICOLORCODE(form = ANSICOLORCODES["RESET"]) + genANSICOLORCODE(textColor = ANSICOLORCODES["TEXT"]["RED"],bkgColor = ANSICOLORCODES["BACKGROUND"]["DARKGREY"]) + "??????????????????????????????" + genANSICOLORCODE(textColor = ANSICOLORCODES["TEXT"]["YELLOW"], bkgColor = ANSICOLORCODES["RESET"]) + "|" + genANSICOLORCODE(form = ANSICOLORCODES["RESET"]) +"\n```")
+    await ctx.edit(content="Generating User Activity Graph", embed=emb)
 
     gifTuple = await genUserGraphGif(ctx, userActivity, oldest, newest, skipblanks=skipblanks)
     gifout = discord.File(gifTuple[0], filename="ActivityGif.gif", description=f"A gif of activity in {channel.name}")
@@ -2707,44 +2586,44 @@ async def usergraphsh(ctx: discord.ApplicationContext, sel: Option(discord.TextC
     print("Finished Graph Gen")
 
 monthLookup = {
-    "1" : 1,
-    "jan" : 1,
-    "january" : 1,
-    "2" : 2,
-    "feb" : 2,
-    "february" : 2,
-    "febuary" : 2,
-    "3" : 3,
-    "mar" : 3,
-    "march" : 3,
-    "4" : 4,
-    "apr" : 4,
-    "april" : 4,
-    "5" : 5,
-    "may" : 5,
-    "6" : 6,
-    "jun" : 6,
-    "june" : 6,
-    "7" : 7,
-    "jul" : 7,
-    "july" : 7,
-    "8" : 8,
-    "aug" : 8,
-    "august" : 8,
-    "9" : 9,
-    "sep" : 9,
-    "sept" : 9,
-    "september" : 9,
-    "10" : 10,
-    "oct" : 10,
-    "october" : 10,
-    "11" : 11,
-    "nov" : 11,
-    "november" : 11,
-    "12" : 12,
-    "dec" : 12,
-    "decemeber" : 12,
-}
+        "1" : 1,
+        "jan" : 1,
+        "january" : 1,
+        "2" : 2,
+        "feb" : 2,
+        "february" : 2,
+        "febuary" : 2,
+        "3" : 3,
+        "mar" : 3,
+        "march" : 3,
+        "4" : 4,
+        "apr" : 4,
+        "april" : 4,
+        "5" : 5,
+        "may" : 5,
+        "6" : 6,
+        "jun" : 6,
+        "june" : 6,
+        "7" : 7,
+        "jul" : 7,
+        "july" : 7,
+        "8" : 8,
+        "aug" : 8,
+        "august" : 8,
+        "9" : 9,
+        "sep" : 9,
+        "sept" : 9,
+        "september" : 9,
+        "10" : 10,
+        "oct" : 10,
+        "october" : 10,
+        "11" : 11,
+        "nov" : 11,
+        "november" : 11,
+        "12" : 12,
+        "dec" : 12,
+        "decemeber" : 12,
+        }
 
 @bot.command(name="timestamp", description="Generates universal timestamp UTC time. Month as number or full or standard 3 letter form in English")
 async def usergraphsh(ctx: discord.ApplicationContext, year: Option(str, required=True, name="year", description="Year of date"), month: Option(str, required=True, name="month", description="Month of the year, as number, name, or 3 letter form"), day: Option(str, required=True, name="day", description="Day of the month"), time: Option(str, required=True, name="time", description="Time in 24hour format hh:mm"), tmzone: Option(str, required=False, name="timezone_abbr", description="Abbreviation of the timezone used", default="UTC")):
@@ -2775,7 +2654,7 @@ async def usergraphsh(ctx: discord.ApplicationContext, year: Option(str, require
 
 @bot.event
 async def on_error(ctx, error):
-    print(error)
+    print("ERROR: " + str(error))
 
 
 if __name__=="__main__":

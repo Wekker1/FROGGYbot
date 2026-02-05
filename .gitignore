@@ -6,6 +6,16 @@ __pycache__/
 # C extensions
 *.so
 
+# Temp files
+assets/
+temp/
+saves/
+*.mp4
+*.h264
+*.gif
+ARCSgame/
+*.zip
+
 # Distribution / packaging
 .Python
 build/
